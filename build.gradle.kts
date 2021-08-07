@@ -5,11 +5,14 @@ plugins {
 group = "love.forte"
 version = "1.0-SNAPSHOT"
 
+
 repositories {
     mavenCentral()
 }
 
 kotlin {
+
+
     jvm {
         compilations.all {
             kotlinOptions.jvmTarget = "1.8"
@@ -35,10 +38,19 @@ kotlin {
 
     
     sourceSets {
-        val commonMain by getting
+        commonMain {
+            dependencies {
+                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.2.1")
+            }
+        }
+        // val commonMain by getting {
+        //
+        // }
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test"))
+                // implementation("io.islandtime:core:0.6.1")
+
             }
         }
         val jvmMain by getting
