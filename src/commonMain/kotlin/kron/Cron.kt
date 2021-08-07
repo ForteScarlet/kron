@@ -9,44 +9,44 @@ import kotlinx.datetime.*
  * 一个 Cron 表达式.
  *
  * Cron表达式支持六个单位：(sec) (min) (hour) (day of month) (month) (week day)
+ * 其中，Day of month 和 Day of week只能存在一个非 `*` 值。
  *
- *
- * ### sec (0~59)
+ * ### Second (0~59)
  *      - value: second value. .e.g: `0`
  *      - `*`: Any value
  *      - `,`: value list separator. .e.g: `1,2,3`
  *      - `-`: range values. .e.g: `0-5`
  *      - `/`: step values. .e.g: `0/2`
  *
- * ### min (0~59)
+ * ### Minute (0~59)
  *      - value: second value. .e.g: `0`
  *      - `*`: Any value
  *      - `,`: value list separator. .e.g: `1,2,3`
  *      - `-`: range values. .e.g: `0-5`
  *      - `/`: step values. .e.g: `0/2`
  *
- * ### hour (0~23)
+ * ### Hour (0~23)
  *      - value: second value. .e.g: `0`
  *      - `*`: Any value
  *      - `,`: value list separator. .e.g: `1,2,3`
  *      - `-`: range values. .e.g: `0-5`
  *      - `/`: step values. .e.g: `0/2`
  *
- * ### day of month (1~31)
+ * ### Day of month (DAY; 1~31)
  *      - value: second value. .e.g: `0`
  *      - `*`: Any value
  *      - `,`: value list separator. .e.g: `1,2,3`
  *      - `-`: range values. .e.g: `0-5`
  *      - `/`: step values. .e.g: `0/2`
  *
- * ### month (1~12, JAN~DEC)
+ * ### Month (1~12, JAN~DEC)
  *      - `*`: Any value
  *      - `,`: value list separator. .e.g: `1,2,3`
  *      - `-`: range values. .e.g: `0-5`
  *      - `/`: step values. .e.g: `0/2`
  *
  *
- * ### week day(0~6, SUN-SAT)
+ * ### Day of week(DAY; 0~6, SUN-SAT)
  *      - `*`: Any value
  *      - `,`: value list separator. .e.g: `1,2,3`
  *      - `-`: range values. .e.g: `0-5`
@@ -110,7 +110,14 @@ interface Cron : Iterable<Instant> {
     sealed interface Value {
         /** 这个值的字面量 */
         val literal: String
+
+        /**
+         * 这个值的类型。
+         */
+        val type: ValueType
     }
+
+
 
     /**
      * Cron表达式执行器
@@ -130,3 +137,12 @@ fun Cron.contains(localDateTime: LocalDateTime, timeZone: TimeZone): Boolean = l
 operator fun Cron.contains(localDateTime: LocalDateTime): Boolean =
     contains(localDateTime, TimeZone.currentSystemDefault())
 
+
+enum class ValueType {
+    SECOND,
+    MINUTE,
+    HOUR,
+    /* of week, of month */
+    DAY,
+    MONTH
+}
