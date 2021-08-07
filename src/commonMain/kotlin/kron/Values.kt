@@ -2,8 +2,10 @@
 
 package kron
 
+import kotlinx.datetime.number
 import kotlinx.datetime.DayOfWeek as X_Week
 import kotlinx.datetime.Month as X_Month
+
 
 sealed class BaseCronValue(private val valueTypeName: String) : Cron.Value {
     override fun toString(): String = "${valueTypeName}Value(type=$type, literal=$literal)"
@@ -55,25 +57,35 @@ sealed class FixedValue(override val type: ValueType, val value: Int) : BaseCron
         }
     }
 
+    // TODO
+    //  Names can also be used for the 'month' and 'day of week' fields. Use the first three letters of the particular day or month (case does not matter).
+    //  Ranges or lists of names are not allowed.
     open class DayOfWeek(value: Int) : FixedValue(ValueType.DAY, value) {
         val dayOfWeek: X_Week
 
         init {
             // Required value.
             // 7: Sunday, but non-standard.
+            // 0-7 (0 or 7 is Sunday, or use names)
             require(value in 0..7) { "Fixed day of week value must in 0..6, but $value." }
             dayOfWeek = if (value == 7) X_Week.SUNDAY else X_Week(value + 1)
         }
     }
 
-    class Month(value: Int) : FixedValue(ValueType.MONTH, value) {
-        val month: X_Month
-
-        init {
+    // TODO
+    //  Names can also be used for the 'month' and 'day of week' fields. Use the first three letters of the particular day or month (case does not matter).
+    //  Ranges or lists of names are not allowed.
+    class Month : FixedValue {
+        constructor(value: Int): super(ValueType.MONTH, value) {
             // Required value.
             require(value in 1..12) { "Fixed month value must in 1..12, but $value" }
             month = X_Month(value)
         }
+        constructor(month: X_Month): super(ValueType.MONTH, month.number) {
+            this.month = month
+        }
+
+        val month: X_Month
     }
 }
 
@@ -102,10 +114,16 @@ sealed class RangedValue(override val type: ValueType, val range: IntRange) :
         constructor(range: IntRange): super(ValueType.DAY, range)
         constructor(start: Int, endInclusive: Int): super(ValueType.DAY, start, endInclusive)
     }
+    // TODO
+    //  Names can also be used for the 'month' and 'day of week' fields. Use the first three letters of the particular day or month (case does not matter).
+    //  Ranges or lists of names are not allowed.
     class DayOfWeek : RangedValue {
         constructor(range: IntRange): super(ValueType.DAY, range)
         constructor(start: Int, endInclusive: Int): super(ValueType.DAY, start, endInclusive)
     }
+    // TODO
+    //  Names can also be used for the 'month' and 'day of week' fields. Use the first three letters of the particular day or month (case does not matter).
+    //  Ranges or lists of names are not allowed.
     class Month : RangedValue {
         constructor(range: IntRange): super(ValueType.MONTH, range)
         constructor(start: Int, endInclusive: Int): super(ValueType.MONTH, start, endInclusive)
@@ -115,6 +133,14 @@ sealed class RangedValue(override val type: ValueType, val range: IntRange) :
 /**
  * 步长数值
  */
+// TODO
+//  Step values can be used in conjunction with ranges.
+//  Following a range with "/<number>" specifies skips of the number's value through the range.
+//  For example,
+//   "0-23/2" can be used in the 'hours' field to specify command execution for every other hour
+//   (the alternative in the V7 standard is "0,:2,:4,:6,:8,:10,:12,:14,:16,:18,:20,:22").
+//  Step values are also permitted after an asterisk, so if specifying a job to be run every two hours, you can use "*/2".
+
 sealed class SteppedValue(override val type: ValueType, val base: Int, val step: Int) : BaseCronValue("Stepped") {
     override val literal: String = "$base/$step"
 
@@ -127,22 +153,34 @@ sealed class SteppedValue(override val type: ValueType, val base: Int, val step:
     class Minute(base: Int, step: Int) : SteppedValue(ValueType.MINUTE, base, step)
     class Hour(base: Int, step: Int) : SteppedValue(ValueType.HOUR, base, step)
     class DayOfMonth(base: Int, step: Int) : SteppedValue(ValueType.DAY, base, step)
+
+    // TODO
+    //  Names can also be used for the 'month' and 'day of week' fields. Use the first three letters of the particular day or month (case does not matter).
+    //  Ranges or lists of names are not allowed.
     class DayOfWeek(base: Int, step: Int) : SteppedValue(ValueType.DAY, base, step)
+
+    // TODO
+    //  Names can also be used for the 'month' and 'day of week' fields. Use the first three letters of the particular day or month (case does not matter).
+    //  Ranges or lists of names are not allowed.
     class Month(base: Int, step: Int) : SteppedValue(ValueType.MONTH, base, step)
 }
 
 /**
  * 列表数据。
+ *
  */
+// TODO
+//  Lists are allowed. A list is a set of numbers (or ranges) separated by commas. Examples: "1,2,5,9", "0-4,8-12".
+
 sealed class ListValue(override val type: ValueType, private val values: IntArray) : BaseCronValue("List") {
     override val literal: String = values.joinToString(",")
     fun valuesCopyOf() = values.copyOf()
     operator fun get(index: Int): Int = values[index]
 
-    class Second(values: IntArray) : ListValue(ValueType.SECOND, values)
-    class Minute(values: IntArray) : ListValue(ValueType.MINUTE, values)
-    class Hour(values: IntArray) : ListValue(ValueType.HOUR, values)
-    class DayOfMonth(values: IntArray) : ListValue(ValueType.DAY, values)
-    class DayOfWeek(values: IntArray) : ListValue(ValueType.DAY, values)
-    class Month(values: IntArray) : ListValue(ValueType.MONTH, values)
+    // class Second(values: IntArray) : ListValue(ValueType.SECOND, values)
+    // class Minute(values: IntArray) : ListValue(ValueType.MINUTE, values)
+    // class Hour(values: IntArray) : ListValue(ValueType.HOUR, values)
+    // class DayOfMonth(values: IntArray) : ListValue(ValueType.DAY, values)
+    // class DayOfWeek(values: IntArray) : ListValue(ValueType.DAY, values)
+    // class Month(values: IntArray) : ListValue(ValueType.MONTH, values)
 }

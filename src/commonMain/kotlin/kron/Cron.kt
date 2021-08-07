@@ -3,13 +3,14 @@
 package kron
 
 import kotlinx.datetime.*
+import kotlin.time.Duration
+import kotlin.time.ExperimentalTime
 
 
 /**
  * 一个 Cron 表达式.
  *
  * Cron表达式支持六个单位：(sec) (min) (hour) (day of month) (month) (week day)
- * 其中，Day of month 和 Day of week只能存在一个非 `*` 值。
  *
  * ### Second (0~59)
  *      - value: second value. .e.g: `0`
@@ -52,27 +53,39 @@ import kotlinx.datetime.*
  *      - `-`: range values. .e.g: `0-5`
  *      - `/`: step values. .e.g: `0/2`
  *
+ * - \@reboot    : Run once after reboot.
+ * - \@yearly    : Run once a year, ie.  "0 0 1 1 *".
+ * - \@annually  : Run once a year, ie.  "0 0 1 1 *".
+ * - \@monthly   : Run once a month, ie. "0 0 1 * *".
+ * - \@weekly    : Run once a week, ie.  "0 0 * * 0".
+ * - \@daily     : Run once a day, ie.   "0 0 * * *".
+ * - \@hourly    : Run once an hour, ie. "0 * * * *".
+ *
  * @author ForteScarlet
  */
 interface Cron : Iterable<Instant> {
+    /**
+     * 这个表达式的实际字符串。
+     */
+    val expression: String
 
     /** 秒的字面值 */
-    val secondLiteral: String
+    val secondLiteral: String get() = second.literal
 
     /** 分钟的字面值 */
-    val minuteLiteral: String
+    val minuteLiteral: String get() = minute.literal
 
     /** 小时的字面值 */
-    val hourLiteral: String
+    val hourLiteral: String get() = hour.literal
 
     /** 日的字面值 */
-    val dayOfMonthLiteral: String
+    val dayOfMonthLiteral: String get() = dayOfMonth.literal
 
     /** 月的字面值 */
-    val monthLiteral: String
+    val monthLiteral: String get() = month.literal
 
     /** 周的字面值 */
-    val dayOfWeekLiteral: String
+    val dayOfWeekLiteral: String get() = dayOfWeek.literal
 
     /** 秒的值 */
     val second: Value
@@ -97,14 +110,22 @@ interface Cron : Iterable<Instant> {
     /**
      * 获取执行器
      */
-    fun executor(startTime: Instant): Executor
+    fun executor(startTime: Instant = Clock.System.now()): Executor
 
     override fun iterator(): Executor = executor(Clock.System.now())
 
     /**
-     * Cron表达式中针对于各位置的值的封装.
+     * Cron表达式中针对于各位置表达式的描述.
+     *
+     * [Value] 主要分为几种类型：[AnyValue]、[FixedValue]、[RangedValue]、[SteppedValue]、[ListValue]
+     *
+     * 关于Cron表达式的值的定义，参考的文章为 [crontab.guru](https://crontab.guru/crontab.5.html)
      *
      * @see AnyValue
+     * @see FixedValue
+     * @see RangedValue
+     * @see SteppedValue
+     * @see ListValue
      *
      */
     sealed interface Value {
@@ -118,7 +139,6 @@ interface Cron : Iterable<Instant> {
     }
 
 
-
     /**
      * Cron表达式执行器
      */
@@ -127,6 +147,56 @@ interface Cron : Iterable<Instant> {
         override fun next(): Instant
         override fun hasNext(): Boolean
     }
+
+}
+
+val Cron.values: Array<Cron.Value>
+    get() = arrayOf(second, minute, hour, dayOfMonth, month, dayOfWeek)
+
+// exclude
+fun Cron.expression(vararg excludes: ValueType): String {
+    if (excludes.isEmpty()) {
+        return expression
+    }
+
+    val vs = values
+
+    if (excludes.size == 1) {
+        val exclude = excludes.first()
+        return buildString {
+            var first = true
+            vs.forEach { v ->
+                if (v.type != exclude) {
+                    if (!first) {
+                        append(' ')
+                    } else {
+                        first = false
+                    }
+                    append(v.literal)
+                }
+            }
+        }
+    }
+
+    val excludeSet = excludes.toSet()
+    if (excludeSet.size == ValueType.values().size) {
+        return ""
+    }
+
+    return buildString {
+        var first = true
+        vs.forEach { v ->
+            if (v.type !in excludeSet) {
+                if (!first) {
+                    append(' ')
+                } else {
+                    first = false
+                }
+                append(v.literal)
+            }
+        }
+    }
+
 
 }
 
@@ -142,7 +212,40 @@ enum class ValueType {
     SECOND,
     MINUTE,
     HOUR,
-    /* of week, of month */
+
+    /* Of week, or of month */
+    // TODO
+    //  Note: The day of a command's execution can be specified in the following two fields --- 'day of month', and 'day of week'.
+    //  If both fields are restricted (i.e., do not contain the "*" character), the command will be run when either field matches the current time.
+    //  For example,
+    //  "30 4 1,15 * 5" would cause a command to be run at 4:30 am on the 1st and 15th of each month, plus every Friday.
     DAY,
-    MONTH
+    MONTH;
+
+
+}
+
+
+object AllAnyValueCron : Cron {
+    override val expression: String get() = "* * * * * *"
+
+    override val second: Cron.Value get() = AnyValue.Second
+    override val minute: Cron.Value get() = AnyValue.Minute
+    override val hour: Cron.Value get() = AnyValue.Hour
+    override val dayOfMonth: Cron.Value get() = AnyValue.DayOfMonth
+    override val month: Cron.Value get() = AnyValue.Month
+    override val dayOfWeek: Cron.Value get() = AnyValue.DayOfWeek
+
+    override fun contains(epochMilliseconds: Instant): Boolean = true
+
+
+    override fun executor(startTime: Instant): Cron.Executor = Executor(startTime)
+
+
+    @OptIn(ExperimentalTime::class)
+    private class Executor(override val startTime: Instant) : Cron.Executor {
+        private var next: Instant = startTime
+        override fun next(): Instant = next.also { next = next.plus(Duration.seconds(1)) }
+        override fun hasNext(): Boolean = true
+    }
 }

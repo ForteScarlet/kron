@@ -11,7 +11,9 @@ repositories {
 }
 
 kotlin {
-
+    /*
+        -Xopt-in=kotlin.RequiresOptIn
+     */
 
     jvm {
         compilations.all {
