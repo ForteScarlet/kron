@@ -110,7 +110,11 @@ interface Cron : Iterable<Instant> {
     /**
      * 获取执行器
      */
-    fun executor(startTime: Instant = Clock.System.now()): Executor
+    fun executor(
+        startTime: Instant = Clock.System.now(),
+        endTime: Instant? = null,
+        timeZone: TimeZone = TimeZone.currentSystemDefault(),
+    ): Executor
 
     override fun iterator(): Executor = executor(Clock.System.now())
 
@@ -128,7 +132,9 @@ interface Cron : Iterable<Instant> {
      * @see ListValue
      *
      */
-    sealed interface Value {
+    interface Value : Iterable<Int> {
+        companion object
+
         /** 这个值的字面量 */
         val literal: String
 
@@ -136,6 +142,52 @@ interface Cron : Iterable<Instant> {
          * 这个值的类型。
          */
         val type: ValueType
+
+        /**
+         * 每个 [Value] 都会有一段数值区间可以获取。
+         */
+        override fun iterator(): Iterator<Int>
+
+        interface Second : Value {
+            companion object {
+                val RANGE: IntRange = 0..59
+            }
+        }
+
+        interface Minute : Value {
+            companion object {
+                val RANGE: IntRange = 0..59
+            }
+        }
+
+        interface Hour : Value {
+            companion object {
+                val RANGE: IntRange = 0..23
+            }
+        }
+
+        interface Day : Value {
+            interface OfMonth : Day {
+                companion object {
+                    val RANGE: IntRange = 1..31
+                }
+            }
+
+            interface OfWeek : Day {
+                companion object {
+                    val RANGE: IntRange = 0..6
+                }
+            }
+        }
+
+
+
+        interface Month : Value {
+            companion object {
+                val RANGE: IntRange = 1..12
+            }
+        }
+
     }
 
 
@@ -144,6 +196,7 @@ interface Cron : Iterable<Instant> {
      */
     interface Executor : Iterator<Instant> {
         val startTime: Instant
+        val endTime: Instant?
         override fun next(): Instant
         override fun hasNext(): Boolean
     }
@@ -239,13 +292,35 @@ object AllAnyValueCron : Cron {
     override fun contains(epochMilliseconds: Instant): Boolean = true
 
 
-    override fun executor(startTime: Instant): Cron.Executor = Executor(startTime)
+    override fun executor(startTime: Instant, endTime: Instant?, timeZone: TimeZone): Cron.Executor =
+        endTime?.let { e -> Executor(startTime, e) } ?: ExecutorForEver(startTime)
 
 
-    @OptIn(ExperimentalTime::class)
-    private class Executor(override val startTime: Instant) : Cron.Executor {
+    private class Executor(override val startTime: Instant, override val endTime: Instant) : Cron.Executor {
+        private var next: Instant? = startTime
+        override fun next(): Instant {
+            val n = next
+            if (n == null) {
+                throw NoSuchElementException("No more element.")
+            } else {
+                return n.also {
+                    val np1 = n.plus(1, DateTimeUnit.SECOND)
+                    next = if (np1 > endTime) {
+                        null
+                    } else {
+                        np1
+                    }
+                }
+            }
+        }
+
+        override fun hasNext(): Boolean = next != null
+    }
+
+    private class ExecutorForEver(override val startTime: Instant) : Cron.Executor {
         private var next: Instant = startTime
-        override fun next(): Instant = next.also { next = next.plus(Duration.seconds(1)) }
+        override val endTime: Instant? get() = null
+        override fun next(): Instant = next.also { next = next.plus(1, DateTimeUnit.SECOND) }
         override fun hasNext(): Boolean = true
     }
 }

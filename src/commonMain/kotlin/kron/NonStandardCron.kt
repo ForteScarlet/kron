@@ -2,10 +2,6 @@ package kron
 
 import kotlinx.datetime.*
 import kron.utils.*
-import kron.utils.DateTime
-import kron.utils.contains
-import kron.utils.toLocalDateTime
-import kotlin.time.Duration
 
 /*
  @yearly : Run once a year, ie. "0 0 1 1 *".
@@ -38,13 +34,21 @@ open class Yearly(
 
     private val dateTime = DateTime(m, d, h, min, s)
 
-
     override fun contains(epochMilliseconds: Instant): Boolean = dateTime.contains(epochMilliseconds, timeZone)
 
-    override fun executor(startTime: Instant): Cron.Executor = YearlyExecutor(startTime)
+    override fun executor(startTime: Instant, endTime: Instant?, timeZone: TimeZone): Cron.Executor =
+        YearlyExecutor(startTime, endTime, timeZone)
 
     @Suppress("PropertyName")
-    private inner class YearlyExecutor(override val startTime: Instant) : Cron.Executor {
+    private inner class YearlyExecutor(
+        override val startTime: Instant,
+        override val endTime: Instant?,
+        private val timeZone: TimeZone,
+    ) :
+        Cron.Executor {
+        private val endDateTime = endTime?.toLocalDateTime(timeZone)
+
+        private var noMore = false
         var _next: LocalDateTime
 
         init {
@@ -59,15 +63,24 @@ open class Yearly(
         }
 
         private fun toNext() {
-            _next = _next.plus(1, DateTimeUnit.YEAR, timeZone)
+            val n = _next.plus(1, DateTimeUnit.YEAR, timeZone)
+            if (endDateTime != null) {
+                if (n > endDateTime) {
+                    noMore = true
+                }
+            }
+            _next = n
         }
 
         override fun next(): Instant {
+            if (noMore) {
+                throw NoSuchElementException("No more element.")
+            }
             return _next.toInstant(timeZone).also { toNext() }
 
         }
 
-        override fun hasNext(): Boolean = true
+        override fun hasNext(): Boolean = !noMore
     }
 
     override fun toString(): String {
