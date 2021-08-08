@@ -1,7 +1,7 @@
 package kron
 
 import kotlinx.datetime.*
-import kron.utils.*
+import kron.utils.plus
 
 /*
  @yearly : Run once a year, ie. "0 0 1 1 *".

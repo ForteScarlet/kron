@@ -8,7 +8,7 @@ import kron.utils.maxDay
  *
  * @author ForteScarlet
  */
-data class DateTime(val month: Month, val day: Int, val hour: Int, val minute: Int, val second: Int) :
+data class DateTime(val month: Month, val day: Int = 1, val hour: Int = 0, val minute: Int = 0, val second: Int = 0) :
     Comparable<DateTime> {
     init {
 
@@ -58,7 +58,7 @@ fun DateTime.toLocalDateTimeOrNull(
 fun DateTime.toInstant(year: Int, timeZone: TimeZone): Instant =
     toLocalDateTime(year).toInstant(timeZone)
 
-fun DateTime(month: Int, day: Int, hour: Int, minute: Int, second: Int): DateTime =
+fun DateTime(month: Int, day: Int = 1, hour: Int = 0, minute: Int = 0, second: Int = 0): DateTime =
     DateTime(Month(month), day, hour, minute, second)
 
 fun DateTime(localDateTime: LocalDateTime): DateTime =
