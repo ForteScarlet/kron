@@ -1,8 +1,11 @@
 package kron
 
-import kotlinx.datetime.Instant
-import kotlinx.datetime.Month
-import kotlinx.datetime.number
+import kotlinx.datetime.*
+import kron.utils.*
+import kron.utils.DateTime
+import kron.utils.contains
+import kron.utils.toLocalDateTime
+import kotlin.time.Duration
 
 /*
  @yearly : Run once a year, ie. "0 0 1 1 *".
@@ -13,7 +16,17 @@ import kotlinx.datetime.number
  @hourly : Run once an hour, ie. "0 * * * *".
  */
 
-open class Yearly(m: Month, d: Int, h: Int, min: Int, s: Int) : Cron {
+/**
+ * `@yearly` : Run once a year, i.e. "0 0 1 1 *".
+ */
+open class Yearly(
+    m: Month,
+    d: Int,
+    h: Int,
+    min: Int,
+    s: Int,
+    private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
+) : Cron {
     override val expression: String = "$s $min $h $d ${m.number} *"
 
     override val second: Cron.Value = FixedValue.Second(s)
@@ -23,18 +36,51 @@ open class Yearly(m: Month, d: Int, h: Int, min: Int, s: Int) : Cron {
     override val month: Cron.Value = FixedValue.Month(m)
     override val dayOfWeek: Cron.Value get() = AnyValue.DayOfWeek
 
-    override fun contains(epochMilliseconds: Instant): Boolean {
-        TODO("Not yet implemented")
+    private val dateTime = DateTime(m, d, h, min, s)
+
+
+    override fun contains(epochMilliseconds: Instant): Boolean = dateTime.contains(epochMilliseconds, timeZone)
+
+    override fun executor(startTime: Instant): Cron.Executor = YearlyExecutor(startTime)
+
+    @Suppress("PropertyName")
+    private inner class YearlyExecutor(override val startTime: Instant) : Cron.Executor {
+        var _next: LocalDateTime
+
+        init {
+            val st = startTime.toLocalDateTime(timeZone)
+            val year = st.year
+            val dateTime = dateTime.toLocalDateTime(year)
+
+            _next = dateTime
+            if (st > dateTime) {
+                toNext()
+            }
+        }
+
+        private fun toNext() {
+            _next = _next.plus(1, DateTimeUnit.YEAR, timeZone)
+        }
+
+        override fun next(): Instant {
+            return _next.toInstant(timeZone).also { toNext() }
+
+        }
+
+        override fun hasNext(): Boolean = true
     }
 
-    override fun executor(startTime: Instant): Cron.Executor {
-        TODO("Not yet implemented")
+    override fun toString(): String {
+        return "@Yearly(dateTime=$dateTime)"
     }
 
     companion object : Yearly(Month.JANUARY, 1, 0, 0, 0)
 }
 
 
-open class Annually(m: Month, d: Int, h: Int, min: Int, s: Int) :  Yearly(m, d, h, min, s) {
+/**
+ * `@annually` : Run once a year, i.e. "0 0 1 1 *".
+ */
+open class Annually(m: Month, d: Int, h: Int, min: Int, s: Int) : Yearly(m, d, h, min, s) {
     companion object : Annually(Month.JANUARY, 1, 0, 0, 0)
 }
