@@ -18,6 +18,8 @@ internal class SimpleCron(
     override val dayOfMonth: Cron.Value,
     override val month: Cron.Value,
     override val dayOfWeek: Cron.Value,
+    // year?
+    val year: Cron.Value = AnyValue.Second,
     override val expression: String = "${second.literal} ${minute.literal} ${hour.literal} ${dayOfMonth.literal} ${month.literal} ${dayOfWeek.literal}",
 ) : Cron {
 
@@ -29,6 +31,7 @@ internal class SimpleCron(
         return Executor(startTime, endTime, timeZone)
     }
 
+    @Suppress("MemberVisibilityCanBePrivate")
     internal inner class Executor(
         override val startTime: Instant,
         override val endTime: Instant?,
