@@ -2,6 +2,7 @@ package kron
 
 import kotlinx.datetime.*
 import kron.utils.maxDay
+import kron.utils.nowYear
 
 
 /**
@@ -39,7 +40,7 @@ fun LocalDateTime.toDateTime(): DateTime = DateTime(month, dayOfMonth, hour, min
  */
 @Suppress("KDocUnresolvedReference")
 fun DateTime.toLocalDateTime(
-    year: Int = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).year,
+    year: Int = nowYear(),
 ): LocalDateTime =
     LocalDateTime(year, month, day, hour, minute, second)
 

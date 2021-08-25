@@ -103,7 +103,7 @@ interface Cron : Iterable<Instant> {
     /** 周的值 */
     val dayOfWeek: Value
 
-    operator fun contains(epochMilliseconds: Instant): Boolean
+    operator fun contains(localDateTime: LocalDateTime): Boolean
 
     /**
      * 获取执行器
@@ -145,6 +145,11 @@ interface Cron : Iterable<Instant> {
          * 每个 [Value] 都会有一段数值区间可以获取。
          */
         override fun iterator(): Iterator<Int>
+
+        /**
+         * 判断某个值是否包含在此元素中
+         */
+        operator fun contains(value: Int): Boolean
 
         interface Second : Value {
             companion object {
@@ -255,23 +260,22 @@ fun Cron.expression(vararg excludes: ValueType): String {
 operator fun Cron.contains(epochMilliseconds: Long): Boolean = Instant.fromEpochMilliseconds(epochMilliseconds) in this
 
 fun Cron.contains(localDateTime: LocalDateTime, timeZone: TimeZone): Boolean = localDateTime.toInstant(timeZone) in this
-operator fun Cron.contains(localDateTime: LocalDateTime): Boolean =
-    contains(localDateTime, TimeZone.currentSystemDefault())
+// operator fun Cron.contains(localDateTime: LocalDateTime): Boolean =
+//     contains(localDateTime, TimeZone.currentSystemDefault())
 
 
-enum class ValueType {
-    SECOND,
-    MINUTE,
-    HOUR,
+enum class ValueType(val isStandard: Boolean) {
+    SECOND(true),
+    MINUTE(true),
+    HOUR(true),
 
     /* Of week, or of month */
-    // TODO
-    //  Note: The day of a command's execution can be specified in the following two fields --- 'day of month', and 'day of week'.
-    //  If both fields are restricted (i.e., do not contain the "*" character), the command will be run when either field matches the current time.
-    //  For example,
-    //  "30 4 1,15 * 5" would cause a command to be run at 4:30 am on the 1st and 15th of each month, plus every Friday.
-    DAY,
-    MONTH;
+    DAY(true),
+    MONTH(true),
+    YEAR(false),
+    NON_STANDARD(false)
+    ;
+
 
 
 }
@@ -287,7 +291,7 @@ object AllAnyValueCron : Cron {
     override val month: Cron.Value get() = AnyValue.Month
     override val dayOfWeek: Cron.Value get() = AnyValue.DayOfWeek
 
-    override fun contains(epochMilliseconds: Instant): Boolean = true
+    override fun contains(localDateTime: LocalDateTime): Boolean = true
 
 
     override fun executor(startTime: Instant, endTime: Instant?, timeZone: TimeZone): Cron.Executor =

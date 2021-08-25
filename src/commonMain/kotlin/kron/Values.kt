@@ -13,8 +13,13 @@ sealed class BaseCronValue(private val valueTypeName: String) : Cron.Value {
 
 sealed class AnyValue(override val type: ValueType, val iterRange: IntRange) : BaseCronValue("Any") {
     override val literal: String get() = "*"
-
     override fun iterator(): Iterator<Int> = iterRange.iterator()
+
+    /**
+     * [AnyValue] 中包含范围内的全部元素
+     */
+    override fun contains(value: Int): Boolean = value in iterRange
+
 
     object Second : AnyValue(ValueType.SECOND, 0..59), Cron.Value.Second
     object Minute : AnyValue(ValueType.MINUTE, 0..59), Cron.Value.Minute
@@ -31,6 +36,8 @@ sealed class AnyValue(override val type: ValueType, val iterRange: IntRange) : B
 sealed class FixedValue(override val type: ValueType, val value: Int) : BaseCronValue("Fixed") {
     override val literal: String get() = value.toString()
     override fun iterator(): Iterator<Int> = iterator { yield(value) }
+
+    override fun contains(value: Int): Boolean = value == this.value
 
     class Second(value: Int) : FixedValue(ValueType.SECOND, value), Cron.Value.Second {
         init {
@@ -127,7 +134,10 @@ sealed class RangedValue(override val type: ValueType, val range: IntProgression
     Iterable<Int> by range {
     override val literal: String = "${range.first}-${range.last}"
 
+
     constructor(type: ValueType, start: Int, endInclusive: Int) : this(type, start..endInclusive)
+
+    override fun contains(value: Int): Boolean = value in range
 
     class Second : RangedValue, Cron.Value.Second {
         constructor(range: IntRange) : super(ValueType.SECOND, range) {
@@ -248,7 +258,7 @@ sealed class SteppedValue(
 
 /**
  * 列表数据。
- * @param values values中的元素值仅允许两个类型: [Int] 或 [IntArray].
+ * @param values values中的元素值仅允许两个类型: [Int] 或 [IntRange].
  */
 sealed class ListValue(override val type: ValueType, private val values: List<Any>) : BaseCronValue("List") {
     override val literal: String = values.joinToString(",") {
@@ -259,7 +269,7 @@ sealed class ListValue(override val type: ValueType, private val values: List<An
         }
     }
 
-    private val valuesList = values.asSequence().flatMap {
+    private val valuesList: List<Int> = values.asSequence().flatMap {
         when (it) {
             is Number -> listOf(it.toInt())
             is IntRange -> it
@@ -273,6 +283,7 @@ sealed class ListValue(override val type: ValueType, private val values: List<An
 
     override fun iterator(): Iterator<Int> = valuesList.iterator()
 
+    override fun contains(value: Int): Boolean = value in valuesList
 
     class Second(values: List<Any>) : ListValue(ValueType.SECOND, values), Cron.Value.Second {
         init {

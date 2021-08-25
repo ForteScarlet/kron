@@ -3,6 +3,7 @@ package kron
 import kotlinx.datetime.*
 import kron.utils.PreviewIterator
 import kron.utils.asPreview
+import kron.utils.nowYear
 
 
 /**
@@ -17,14 +18,19 @@ internal class SimpleCron(
     override val hour: Cron.Value,
     override val dayOfMonth: Cron.Value,
     override val month: Cron.Value,
-    override val dayOfWeek: Cron.Value,
+    override val dayOfWeek: Cron.Value = AnyValue.DayOfWeek,
     // year?
-    val year: Cron.Value = AnyValue.Second,
+    val startYear: Int = nowYear(),
     override val expression: String = "${second.literal} ${minute.literal} ${hour.literal} ${dayOfMonth.literal} ${month.literal} ${dayOfWeek.literal}",
 ) : Cron {
 
-    override fun contains(epochMilliseconds: Instant): Boolean {
-        TODO("Not yet implemented")
+    override fun contains(localDateTime: LocalDateTime): Boolean {
+        return localDateTime.second in second &&
+                localDateTime.minute in minute &&
+                localDateTime.hour in hour &&
+                localDateTime.dayOfMonth in dayOfMonth &&
+                localDateTime.monthNumber in month &&
+                localDateTime.dayOfWeek.isoDayNumber in dayOfWeek
     }
 
     override fun executor(startTime: Instant, endTime: Instant?, timeZone: TimeZone): Cron.Executor {
@@ -41,51 +47,61 @@ internal class SimpleCron(
         private var year = startLocalDateTime.year
 
         private var dateTimeOfYear = startLocalDateTime.toDateTime()
-        private var _next: LocalDateTime?
+        // private var _next: LocalDateTime?
 
-        init {
-            _next = initNext()
+        private var dateTimeIter: DateTimeIter = newDateTimeIter(startLocalDateTime.toDateTime())
+
+
+        private fun newDateTimeIter(startDateTime: DateTime? = null) = DateTimeIter(
+            startDateTime,
+            // year,
+            month,
+            dayOfMonth,
+            hour,
+            minute,
+            second
+        )
+
+        private fun nextRound() {
+            dateTimeIter = newDateTimeIter()
+            nextYear()
         }
 
 
         override fun next(): Instant {
-            val n = _next ?: throw NoSuchElementException("No more element.")
-
-            return n.toInstant(timeZone).also { toNext() }
+            // var times = 1
+            // while (!dateTimeIter.hasNext()) {
+            //     nextRound()
+            //     if (times++ > 100) {
+            //         throw NoSuchElementException("No more element.")
+            //     }
+            // }
+            val next = dateTimeIter.next()
+            return next.toInstant(year, timeZone)
+            // val n = _next ?: throw NoSuchElementException("No more element.")
+            // return n.toInstant(timeZone).also { toNext() }
         }
 
-        override fun hasNext(): Boolean = _next != null
+        override fun hasNext(): Boolean {
+            var times = 1
+            while (!dateTimeIter.hasNext()) {
+                nextRound()
+                if (times++ > 100) {
+                    return false
+                }
+            }
+            return true
+        } // true // No year, always true now.
 
 
         private fun nextYear() {
             year++
         }
 
-        /**
-         * 初始化 [_next]
-         */
-        private fun initNext(): LocalDateTime {
-            // 从 startDate开始，寻找最近的一个值。
-            // 年 月 日 时 分 秒
-            // 先从月开始找
-
-
-            TODO()
-        }
-
-
-        /**
-         * 得到下一个时间，并置于 [_next] 中。
-         */
-        private fun toNext() {
-
-
-        }
 
     }
 
 }
-
 
 
 // fun DateTimeIter(
@@ -105,16 +121,17 @@ internal class SimpleCron(
 
 
 // 月 日 时 分 秒
+// 暂时不支持 星期
 class DateTimeIter(
     // 月份所对应的年
-    private val year: Int,
+    initDateTime: DateTime? = null,
+    //private val year: Int,
     private val month: Cron.Value, //.Month,
     private val dayOfMonth: Cron.Value, //.Day.OfMonth,
-    private val dayOfWeek: Cron.Value, //.Day.OfWeek,
     private val hour: Cron.Value, //.Hour,
     private val minute: Cron.Value, //.Minute,
     private val second: Cron.Value, //.Second,
-    initDateTime: DateTime? = null,
+    // dayOfWeek: Cron.Value? = null, //.Day.OfWeek,
 ) {
     private val monthIter: PreviewIterator<Int> = month.iterator().asPreview()
 

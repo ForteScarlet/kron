@@ -56,14 +56,20 @@ fun cronSecond(value: String): Cron.Value.Second {
             FixedValue.Second(intValue)
         }
     } else {
+        // return AnyValue.Second
         // May elements
-
+        return TODO()
 
     }
 
-    TODO()
 }
+fun a()  {
+    val b = true
+    if (!b) {
+        println("HI")
+    }
 
+}
 //endregion
 
 

@@ -32,9 +32,18 @@ open class Yearly(
     override val month: Cron.Value = FixedValue.Month(m)
     override val dayOfWeek: Cron.Value get() = AnyValue.DayOfWeek
 
+    override fun contains(localDateTime: LocalDateTime): Boolean {
+        return localDateTime.second in second &&
+                localDateTime.minute in minute &&
+                localDateTime.hour in hour &&
+                localDateTime.dayOfMonth in dayOfMonth &&
+                localDateTime.monthNumber in month &&
+                localDateTime.dayOfWeek.isoDayNumber in dayOfWeek
+    }
+
     private val dateTime = DateTime(m, d, h, min, s)
 
-    override fun contains(epochMilliseconds: Instant): Boolean = dateTime.contains(epochMilliseconds, timeZone)
+    // override fun contains(epochMilliseconds: Instant): Boolean = dateTime.contains(epochMilliseconds, timeZone)
 
     override fun executor(startTime: Instant, endTime: Instant?, timeZone: TimeZone): Cron.Executor =
         YearlyExecutor(startTime, endTime, timeZone)
