@@ -140,7 +140,7 @@ sealed class RangedValue(override val type: ValueType, val range: IntProgression
     override fun contains(value: Int): Boolean = value in range
 
     class Second : RangedValue, Cron.Value.Second {
-        constructor(range: IntRange) : super(ValueType.SECOND, range) {
+        constructor(range: IntProgression) : super(ValueType.SECOND, range) {
             require(range.first >= 0 && range.last <= 59) { "Second range must in 0..59, but $range" }
         }
 
@@ -148,7 +148,7 @@ sealed class RangedValue(override val type: ValueType, val range: IntProgression
     }
 
     class Minute : RangedValue, Cron.Value.Minute {
-        constructor(range: IntRange) : super(ValueType.MINUTE, range) {
+        constructor(range: IntProgression) : super(ValueType.MINUTE, range) {
             require(range.first >= 0 && range.last <= 59) { "Minute range must in 0..59, but $range" }
         }
 
@@ -156,7 +156,7 @@ sealed class RangedValue(override val type: ValueType, val range: IntProgression
     }
 
     class Hour : RangedValue, Cron.Value.Hour {
-        constructor(range: IntRange) : super(ValueType.HOUR, range) {
+        constructor(range: IntProgression) : super(ValueType.HOUR, range) {
             require(range.first >= 0 && range.last <= 23) { "Hour range must in 0..23, but $range" }
         }
 
@@ -164,7 +164,7 @@ sealed class RangedValue(override val type: ValueType, val range: IntProgression
     }
 
     class DayOfMonth : RangedValue, Cron.Value.Day.OfMonth {
-        constructor(range: IntRange) : super(ValueType.DAY, range) {
+        constructor(range: IntProgression) : super(ValueType.DAY, range) {
             require(range.first >= 1 && range.last <= 31) { "DayOfMonth range must in 1..31, but $range" }
         }
 
@@ -172,7 +172,7 @@ sealed class RangedValue(override val type: ValueType, val range: IntProgression
     }
 
     class DayOfWeek : RangedValue, Cron.Value.Day.OfWeek {
-        constructor(range: IntRange) : super(ValueType.DAY, range) {
+        constructor(range: IntProgression) : super(ValueType.DAY, range) {
             require(range.first >= 0 && range.last <= 6) { "DayOfWeek range must in 0..6, but $range" }
         }
 
@@ -180,7 +180,7 @@ sealed class RangedValue(override val type: ValueType, val range: IntProgression
     }
 
     class Month : RangedValue, Cron.Value.Month {
-        constructor(range: IntRange) : super(ValueType.MONTH, range) {
+        constructor(range: IntProgression) : super(ValueType.MONTH, range) {
             require(range.first >= 1 && range.last <= 12) { "Month range must in 1..12, but $range" }
         }
 
@@ -258,13 +258,13 @@ sealed class SteppedValue(
 
 /**
  * 列表数据。
- * @param values values中的元素值仅允许两个类型: [Int] 或 [IntRange].
+ * @param values values中的元素值仅允许两个类型: [Int] 或 [IntProgression].
  */
 sealed class ListValue(override val type: ValueType, private val values: List<Any>) : BaseCronValue("List") {
     override val literal: String = values.joinToString(",") {
         when (it) {
             is Number -> it.toInt().toString()
-            is IntRange -> "${it.first}-${it.last}"
+            is IntProgression -> "${it.first}-${it.last}"
             else -> throw IllegalArgumentException("Values only support type Int or IntRange.")
         }
     }
@@ -272,7 +272,7 @@ sealed class ListValue(override val type: ValueType, private val values: List<An
     private val valuesList: List<Int> = values.asSequence().flatMap {
         when (it) {
             is Number -> listOf(it.toInt())
-            is IntRange -> it
+            is IntProgression -> it
             else -> throw IllegalArgumentException("Values only support type Int or IntRange.")
         }
     }.distinct().toList().sorted()
@@ -329,7 +329,7 @@ internal inline fun List<Any>.checkValues(min: Int, max: Int) {
     for (value in this) {
         when (value) {
             is Number -> value.toInt().also { require(it in min..max) { "Value must in $min..$max, but $value" } }
-            is IntRange -> require(value.first >= min && value.last <= max) { "Value range must in $min..$max, but $value" }
+            is IntProgression -> require(value.first >= min && value.last <= max) { "Value range must in $min..$max, but $value" }
             else -> throw IllegalArgumentException("Values only support type Int or IntRange.")
         }
     }

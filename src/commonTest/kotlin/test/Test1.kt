@@ -43,12 +43,24 @@ class Test1 {
     fun test2() {
 
         val cron = SimpleCron(
-            RangedValue.Second(5 .. 7),
+            RangedValue.Second(0..3),
             FixedValue.Minute(0),
             FixedValue.Hour(0),
             FixedValue.DayOfMonth(1),
-            ListValue.Month(listOf(1, 3, 5))
+            SteppedValue.Month(8, 9, 2)
         )
+
+        /*
+          val cron = SimpleCron(
+          RangedValue.Second(0..3),
+          FixedValue.Minute(0),
+          FixedValue.Hour(0),
+          FixedValue.DayOfMonth(1),
+          SteppedValue.Month(5, 9, 2)
+        )
+         */
+
+        println(cron.expression)
 
         var t = 1
         for (instant in cron.executor()) {
@@ -62,8 +74,24 @@ class Test1 {
         }
 
 
+    }
+
+    @Test
+    fun test3() {
+        val cronValue = "0-3 0 0 1 5-9/2 *"
+        val cron = resolveCron(cronValue)
+        println(cron.expression)
+        val executor = cron.executor()
+        var i = 1
+        for (instant in executor) {
+            println(instant.toLocalDateTime(TimeZone.currentSystemDefault()))
+            if (i++ > 10) {
+                break
+            }
+        }
 
     }
+
 
 
 }

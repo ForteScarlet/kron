@@ -214,34 +214,6 @@ class DateTimeIter(
 
         }
 
-        // lastMonth = monthIter.next()
-        // lastDayOfMonth = dayOfMonthIter.next()
-        // lastHour = hourIter.next()
-        // lastMinute = minuteIter.next()
-        // // if (!secondIter.hasNext()) {
-        // //     secondIter = second.iterator()
-        // // }
-        // // nextSecond = secondIter.next()
-        //
-        // if (!minuteIter.hasNext()) {
-        //     minuteIter = minute.iterator().asPreview()
-        // }
-        // nextMinute = minuteIter.next()
-        //
-        // if (!hourIter.hasNext()) {
-        //     hourIter = hour.iterator().asPreview()
-        // }
-        // nextHour = hourIter.next()
-        //
-        // if (!dayOfMonthIter.hasNext()) {
-        //     dayOfMonthIter = dayOfMonth.iterator().asPreview()
-        // }
-        // nextDayOfMonth = dayOfMonthIter.next()
-        //
-        // if (monthIter.hasNext()) {
-        //     nextMonth = monthIter.next()
-        // }
-
     }
 
     // Preview
@@ -309,34 +281,9 @@ class DateTimeIter(
     //region nextValue
     private fun nextMonth(): Int {
         return monthIter.next().also { lastMonth = it }
-        // return nextMonth?.also {
-        //     lastMonth = it
-        //     nextMonth = if (monthIter.hasNext()) monthIter.next() else null
-        // } ?: throw NoSuchElementException("No more month.")
     }
 
     private fun nextDayOfMonth(): Int {
-        // return nextDayOfMonth?.also {
-        //     lastDayOfMonth = it
-        //     nextDayOfMonth = if (dayOfMonthIter.hasNext()) dayOfMonthIter.next() else {
-        //         var n: Int? = null
-        //         while (hasNextMonth()) {
-        //             nextMonth()
-        //             val newIter = dayOfMonth.iterator().asPreview()
-        //             if (newIter.hasNext()) {
-        //                 n = newIter.next()
-        //                 dayOfMonthIter = newIter
-        //                 break
-        //             }
-        //         }
-        //         n
-        //     }
-        // } ?: throw NoSuchElementException("No more day of month.")
-        // val nd = nextDayOfMonth
-        // if (nd != null) {
-        //     TODO()
-        //     return nd
-        // }
         if (hasNextDayOfMonth()) {
             return dayOfMonthIter.next().also { lastDayOfMonth = it }
         }
@@ -344,22 +291,6 @@ class DateTimeIter(
     }
 
     private fun nextHour(): Int {
-        // return nextHour?.also {
-        //     lastHour = it
-        //     nextHour = if (hourIter.hasNext()) hourIter.next() else {
-        //         var n: Int? = null
-        //         while (hasNextDayOfMonth()) {
-        //             nextDayOfMonth()
-        //             val newIter = hour.iterator().asPreview()
-        //             if (newIter.hasNext()) {
-        //                 n = newIter.next()
-        //                 hourIter = newIter
-        //                 break
-        //             }
-        //         }
-        //         n
-        //     }
-        // } ?: throw NoSuchElementException("No more hour.")
         if (hasNextHour()) {
             return hourIter.next().also { lastHour = it }
         }
@@ -367,22 +298,6 @@ class DateTimeIter(
     }
 
     private fun nextMinute(): Int {
-        // return nextMinute?.also {
-        //     lastMinute = it
-        //     nextMinute = if (minuteIter.hasNext()) minuteIter.next() else {
-        //         var n: Int? = null
-        //         while (hasNextHour()) {
-        //             nextHour()
-        //             val newIter = minute.iterator().asPreview()
-        //             if (newIter.hasNext()) {
-        //                 n = newIter.next()
-        //                 minuteIter = newIter
-        //                 break
-        //             }
-        //         }
-        //         n
-        //     }
-        // } ?: throw NoSuchElementException("No more minute.")
         if (hasNextMinute()) {
             return minuteIter.next().also { lastMinute = it }
         }
@@ -391,23 +306,6 @@ class DateTimeIter(
 
 
     private fun nextSecond(): Int {
-        // return nextSecond?.also {
-        //     // lastSecond = it
-        //     nextSecond = if (secondIter.hasNext()) secondIter.next() else {
-        //         var n: Int? = null
-        //         while (hasNextMinute()) {
-        //             nextMinute()
-        //             val newIter = second.iterator().asPreview()
-        //             if (newIter.hasNext()) {
-        //                 n = newIter.next()
-        //                 secondIter = newIter
-        //                 break
-        //             }
-        //         }
-        //         n
-        //     }
-        //
-        // } ?: throw NoSuchElementException("No more second.")
 
         if (hasNextSecond()) {
             return secondIter.next()
