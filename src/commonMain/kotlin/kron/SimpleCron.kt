@@ -87,16 +87,33 @@ internal class SimpleCron(
 }
 
 
+
+// fun DateTimeIter(
+//     // 月份所对应的年
+//     year: Int,
+//     month: String, //.Month,
+//     dayOfMonth: String, //.Day.OfMonth,
+//     dayOfWeek: String, //.Day.OfWeek,
+//     hour: String, //.Hour,
+//     minute: String, //.Minute,
+//     second: String, //.Second,
+//     initDateTime: DateTime? = null,
+// ): DateTimeIter = DateTimeIter(
+//     year,
+//     cronMonth(month),
+// )
+
+
 // 月 日 时 分 秒
 class DateTimeIter(
     // 月份所对应的年
     private val year: Int,
-    private val month: Cron.Value.Month,
-    private val dayOfMonth: Cron.Value.Day.OfMonth,
-    private val dayOfWeek: Cron.Value.Day.OfWeek,
-    private val hour: Cron.Value.Hour,
-    private val minute: Cron.Value.Minute,
-    private val second: Cron.Value.Second,
+    private val month: Cron.Value, //.Month,
+    private val dayOfMonth: Cron.Value, //.Day.OfMonth,
+    private val dayOfWeek: Cron.Value, //.Day.OfWeek,
+    private val hour: Cron.Value, //.Hour,
+    private val minute: Cron.Value, //.Minute,
+    private val second: Cron.Value, //.Second,
     initDateTime: DateTime? = null,
 ) {
     private val monthIter: PreviewIterator<Int> = month.iterator().asPreview()

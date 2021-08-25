@@ -18,6 +18,52 @@ fun cronSecond(valueProgression: IntProgression): Cron.Value.Second {
 
 fun cronSecond(vararg values: Int): Cron.Value.Second = ListValue.Second(values.asList())
 fun cronSecond(vararg valueRanges: IntRange): Cron.Value.Second = ListValue.Second(valueRanges.asList())
+fun cronSecond(value: String): Cron.Value.Second {
+    require(value.isNotBlank()) { "Value was blank." }
+
+    // *
+    // 数值
+    // 多数值
+    // 数值区间
+    // 有步长的数值区间
+
+    if (value == "*") return AnyValue.Second
+    val splitValues = value.split(',')
+    if (splitValues.size == 1) {
+        // Only one element
+        val singleValue = splitValues[0]
+        return if (singleValue.contains('-')) {
+            // range
+            val rangeValues = singleValue.split('-')
+            check(rangeValues.size == 2) { "Range value only need 2, but ${rangeValues.size}: $rangeValues" }
+
+            with(rangeValues.last()) {
+                if (contains('/')) {
+                    // has step
+                    val stepSplit = split('/')
+                    check(stepSplit.size == 2) { "Range Step value must only one, mut found ${stepSplit.size}: $stepSplit" }
+
+                    SteppedValue.Second(rangeValues.first().toInt(),
+                        stepSplit.first().toInt(),
+                        stepSplit.last().toInt())
+                } else {
+                    // no step
+                    RangedValue.Second(rangeValues.first().toInt(), rangeValues.last().toInt())
+                }
+            }
+        } else {
+            val intValue = singleValue.toInt()
+            FixedValue.Second(intValue)
+        }
+    } else {
+        // May elements
+
+
+    }
+
+    TODO()
+}
+
 //endregion
 
 
