@@ -54,13 +54,12 @@ kotlin {
     }
 
     jvmTargetConfigure("jvm", "1.8")
-    jvmTargetConfigure("jvm-j17", "16") // TODO waiting for 17 support
+    // jvmTargetConfigure("jvm-j17", "16") // TODO waiting for 17 support
 
 
     js(LEGACY) {
         browser()
-
-
+        useCommonJs()
     }
 
 
@@ -99,8 +98,8 @@ kotlin {
         }
         val jvmMain by getting
         val jvmTest by getting
-        val `jvm-j17Main` by getting
-        val `jvm-j17Test` by getting
+        // val `jvm-j17Main` by getting
+        // val `jvm-j17Test` by getting
         val jsMain by getting
         val jsTest by getting
         val nativeMain by getting
@@ -109,19 +108,26 @@ kotlin {
 
 
     // Publish
-    // See https://zhuanlan.zhihu.com/p/164446166
+    // Maven see https://zhuanlan.zhihu.com/p/164446166
+    // Js see: https://www.jianshu.com/p/fac124e8e69b
     publishing {
 
         repositories {
             maven {
-                val releasesRepoUrl = layout.buildDirectory.dir("repos/releases")
-                val snapshotsRepoUrl = layout.buildDirectory.dir("repos/snapshots")
-
-                println("releasesRepoUrl : $releasesRepoUrl")
-                println("snapshotsRepoUrl : $snapshotsRepoUrl")
-
-                url = uri(if (version.toString().endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl)
-
+                if (version.toString().endsWith("SNAPSHOTS", true)) {
+                    // snapshot
+                    name = "snapshots-oss"
+                    url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
+                } else {
+                    name = "oss"
+                    url = uri("https://oss.sonatype.org/service/local/staging/deploy/maven2/")
+                }
+                credentials {
+                    username = project.extra.properties["sonatype.username"]?.toString() ?: throw NullPointerException("snapshots-sonatype-username")
+                    password = project.extra.properties["sonatype.password"]?.toString() ?: throw NullPointerException("snapshots-sonatype-password")
+                    println("username: $username")
+                    println("password: $password")
+                }
             }
         }
 
@@ -155,16 +161,16 @@ tasks.withType<DokkaTask>().configureEach {
         /*
         Create custom source set (not known to the Kotlin Gradle Plugin)
          */
-        register("customSourceSetForJvm") {
-            this.jdkVersion.set(8)
-            this.displayName.set("customForJvm")
-            this.sourceRoots.from(file("src/jvmMain/kotlin"))
-        }
-        register("customSourceSetForJvm-17") {
-            this.jdkVersion.set(17)
-            this.displayName.set("customForJvm17")
-            this.sourceRoots.from(file("src/jvm-j17Main/kotlin"))
-        }
+        // register("customSourceSetForJvm") {
+        //     this.jdkVersion.set(8)
+        //     this.displayName.set("customForJvm")
+        //     this.sourceRoots.from(file("src/jvmMain/kotlin"))
+        // }
+        // register("customSourceSetForJvm-17") {
+        //     this.jdkVersion.set(17)
+        //     this.displayName.set("customForJvm17")
+        //     this.sourceRoots.from(file("src/jvm-j17Main/kotlin"))
+        // }
     }
 }
 
