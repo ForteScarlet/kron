@@ -106,11 +106,20 @@ kotlin {
         val nativeTest by getting
     }
 
+    val dokkaJavadocJar by tasks.register<Jar>("dokkaJavadocJar") {
+        dependsOn(tasks.dokkaJavadoc)
+        from(tasks.dokkaJavadoc.get().outputDirectory.get())
+        archiveClassifier.set("javadoc")
+    }
 
     // Publish
     // Maven see https://zhuanlan.zhihu.com/p/164446166
     // Js see: https://www.jianshu.com/p/fac124e8e69b
     publishing {
+
+        artifacts {
+            archives(dokkaJavadocJar)
+        }
 
         repositories {
             maven {
@@ -123,24 +132,16 @@ kotlin {
                     url = uri("https://oss.sonatype.org/service/local/staging/deploy/maven2/")
                 }
                 credentials {
-                    username = project.extra.properties["sonatype.username"]?.toString() ?: throw NullPointerException("snapshots-sonatype-username")
-                    password = project.extra.properties["sonatype.password"]?.toString() ?: throw NullPointerException("snapshots-sonatype-password")
+                    username = project.extra.properties["sonatype.username"]?.toString()
+                        ?: throw NullPointerException("snapshots-sonatype-username")
+                    password = project.extra.properties["sonatype.password"]?.toString()
+                        ?: throw NullPointerException("snapshots-sonatype-password")
                     println("username: $username")
                     println("password: $password")
                 }
             }
         }
 
-
-        // publications {
-            // create<MavenPublication>("maven") {
-            //
-            //     groupId = project.group.toString().also { println("groupId = $it") }
-            //     artifactId = project.name.also { println("artifactId = $it") }
-            //     version = project.version.toString().also { println("version = $it") }
-
-            // }
-        // }
 
     }
 
@@ -150,28 +151,15 @@ kotlin {
         sign(publishing.publications)
     }
 
+    // // Dokka tasks
+    // tasks.withType<DokkaTask>().configureEach {
+    // }
+
+
+
 }
 
-// Dokka tasks
-tasks.withType<DokkaTask>().configureEach {
-    // failOnWarning.set(false)
-    // offlineMode.set(true)
-    dokkaSourceSets {
 
-        /*
-        Create custom source set (not known to the Kotlin Gradle Plugin)
-         */
-        // register("customSourceSetForJvm") {
-        //     this.jdkVersion.set(8)
-        //     this.displayName.set("customForJvm")
-        //     this.sourceRoots.from(file("src/jvmMain/kotlin"))
-        // }
-        // register("customSourceSetForJvm-17") {
-        //     this.jdkVersion.set(17)
-        //     this.displayName.set("customForJvm17")
-        //     this.sourceRoots.from(file("src/jvm-j17Main/kotlin"))
-        // }
-    }
-}
+
 
 
