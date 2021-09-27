@@ -12,7 +12,6 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 }
 
 
-
 plugins {
     kotlin("multiplatform") version "1.5.31"
     `maven-publish`
@@ -21,8 +20,11 @@ plugins {
 
 }
 
-group = "love.forte"
-version = "0.0.1"
+val projectGroup = "love.forte"
+val projectVersion = "0.0.1"
+
+group = projectGroup
+version = projectVersion
 
 
 repositories {
@@ -124,11 +126,19 @@ kotlin {
         }
 
 
-        publications.configureEach {
-            println("publication-$name")
-        }
+        // publications {
+            // create<MavenPublication>("maven") {
+            //
+            //     groupId = project.group.toString().also { println("groupId = $it") }
+            //     artifactId = project.name.also { println("artifactId = $it") }
+            //     version = project.version.toString().also { println("version = $it") }
+
+            // }
+        // }
 
     }
+
+    // See https://zhuanlan.zhihu.com/p/164446166
 
     signing {
         sign(publishing.publications)
