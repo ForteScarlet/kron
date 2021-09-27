@@ -7,6 +7,8 @@ import platform.posix.time
 import kotlin.test.Test
 
 
+actual val javaVersion: String? get() = null
+
 class NativeTest {
     @Test
     fun timeTest() {

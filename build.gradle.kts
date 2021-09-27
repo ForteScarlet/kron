@@ -1,9 +1,11 @@
+@file:Suppress("LocalVariableName")
+
 plugins {
-    kotlin("multiplatform") version "1.5.10"
+    kotlin("multiplatform") version "1.5.31"
 }
 
 group = "love.forte"
-version = "1.0-SNAPSHOT"
+version = "0.0.1"
 
 
 repositories {
@@ -16,18 +18,29 @@ kotlin {
         -Xopt-in=kotlin.RequiresOptIn
      */
 
-    jvm {
-        compilations.all {
-            kotlinOptions.jvmTarget = "1.8"
-        }
-        testRuns["test"].executionTask.configure {
-            useJUnit()
+    fun jvmTargetConfigure(jvmName: String = "jvm", jvmTarget: String) {
+        jvm(jvmName) {
+            compilations.all {
+                println("$jvmName-compilations >> ${this.name}")
+                kotlinOptions.jvmTarget = jvmTarget
+            }
+            testRuns.all {
+                println("$jvmName-testRuns >> ${this.name}")
+                executionTask.configure {
+                    useJUnit()
+                }
+            }
         }
     }
-    js(LEGACY) {
-        browser {
 
-        }
+    jvmTargetConfigure("jvm-j8", "1.8")
+    jvmTargetConfigure("jvm-j17", "16") // TODO wait for 17
+
+
+
+
+    js(LEGACY) {
+        browser()
 
     }
     val hostOs = System.getProperty("os.name")
@@ -39,14 +52,16 @@ kotlin {
         else -> throw GradleException("Host OS '$hostOs' is not supported in Kotlin/Native.")
     }
 
+    println("nativeTarget >> ${nativeTarget::class}")
     
     sourceSets {
         all {
             languageSettings {
-                useExperimentalAnnotation("kotlin.RequiresOptIn")
+                optIn("kotlin.RequiresOptIn")
 
             }
         }
+
 
         commonMain {
             dependencies {
@@ -59,12 +74,12 @@ kotlin {
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test"))
-                // implementation("io.islandtime:core:0.6.1")
-
             }
         }
-        val jvmMain by getting
-        val jvmTest by getting
+        val `jvm-j8Main` by getting
+        val `jvm-j8Test` by getting
+        val `jvm-j17Main` by getting
+        val `jvm-j17Test` by getting
         val jsMain by getting
         val jsTest by getting
         val nativeMain by getting

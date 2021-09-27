@@ -9,12 +9,19 @@ import kotlin.test.Test
 
 internal inline fun <reified T: Any?> T.println(needShow: (T) -> Any? = { it }): T = also { println(needShow(this)) }
 
+expect val javaVersion: String?
+
 
 /**
  *
  * @author ForteScarlet
  */
 class Test1 {
+
+    @Test
+    fun jVersionTest() {
+        println(javaVersion)
+    }
 
     @Test
     fun test1() {
