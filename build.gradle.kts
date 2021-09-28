@@ -9,7 +9,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
     }
 }
 
-description = "A kotlin multi platform library for parsing cron"
+description = "A multi-platform cron expression parser"
 
 
 plugins {
@@ -209,7 +209,7 @@ fun MavenPublication.setupPom(
         licenses {
             license {
                 name.set("The Apache License, Version 2.0")
-                url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                url.set("https://github.com/ForteScarlet/kron/blob/master/LICENSE")
             }
         }
 
