@@ -1,7 +1,5 @@
 @file:Suppress("LocalVariableName")
 
-import org.jetbrains.dokka.gradle.DokkaTask
-
 
 // val compileKotlin: org.jetbrains.kotlin.gradle.tasks.KotlinCompile by tasks
 // compileKotlin.kotlinOptions.suppressWarnings = true
@@ -11,12 +9,14 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
     }
 }
 
+description = "A kotlin multi platform library for parsing cron"
+
 
 plugins {
     kotlin("multiplatform") version "1.5.31"
     `maven-publish`
     signing
-    id("org.jetbrains.dokka") version "1.5.30"
+    // id("org.jetbrains.dokka") version "1.5.30"
 
 }
 
@@ -33,6 +33,7 @@ repositories {
 }
 
 
+
 kotlin {
     /*
         -Xopt-in=kotlin.RequiresOptIn
@@ -40,6 +41,12 @@ kotlin {
 
     fun jvmTargetConfigure(jvmName: String = "jvm", jvmTarget: String) {
         jvm(jvmName) {
+            val target = when (jvmTarget) {
+                "1.6" -> 6
+                "1.8" -> 8
+                else -> jvmTarget.toInt()
+            }
+            attributes.attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, target)
             compilations.all {
                 println("$jvmName-compilations >> ${this.name}")
                 kotlinOptions.jvmTarget = jvmTarget
@@ -54,11 +61,11 @@ kotlin {
     }
 
     jvmTargetConfigure("jvm", "1.8")
-    // jvmTargetConfigure("jvm-j17", "16") // TODO waiting for 17 support
+    jvmTargetConfigure("jvm-j17", "16") // TODO waiting for 17 support
 
 
     js(LEGACY) {
-        browser()
+        nodejs()
         useCommonJs()
     }
 
@@ -82,7 +89,6 @@ kotlin {
             }
         }
 
-
         commonMain {
             dependencies {
                 implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.2.1")
@@ -98,27 +104,69 @@ kotlin {
         }
         val jvmMain by getting
         val jvmTest by getting
-        // val `jvm-j17Main` by getting
-        // val `jvm-j17Test` by getting
+        val `jvm-j17Main` by getting
+        val `jvm-j17Test` by getting
         val jsMain by getting
         val jsTest by getting
         val nativeMain by getting
         val nativeTest by getting
     }
 
-    val dokkaJavadocJar by tasks.register<Jar>("dokkaJavadocJar") {
-        dependsOn(tasks.dokkaJavadoc)
-        from(tasks.dokkaJavadoc.get().outputDirectory.get())
-        archiveClassifier.set("javadoc")
-    }
+
+    configureMppPublishing()
 
     // Publish
     // Maven see https://zhuanlan.zhihu.com/p/164446166
     // Js see: https://www.jianshu.com/p/fac124e8e69b
-    publishing {
 
-        artifacts {
-            archives(dokkaJavadocJar)
+    // See https://zhuanlan.zhihu.com/p/164446166
+
+    signing {
+        sign(publishing.publications)
+    }
+
+    // // Dokka tasks
+    // tasks.withType<DokkaTask>().configureEach {
+    // }
+
+
+}
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun Project.configurePublishing(
+    artifactId: String,
+    vcs: String = "https://github.com/ForteScarlet/ktor",
+) {
+    // configureRemoteRepos()
+    // apply<ShadowPlugin>()
+
+    val sourcesJar by tasks.registering(Jar::class) {
+        archiveClassifier.set("sources")
+        from(sourceSets["main"].allSource)
+    }
+    // val sourcesJar = tasks["sourcesJar"]
+    val stubJavadoc = tasks.register("javadocJar", Jar::class) {
+        @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
+        archiveClassifier.set("javadoc")
+    }
+
+    publishing {
+        publications {
+            register("mavenJava", MavenPublication::class) {
+                from(components["java"])
+
+                groupId = rootProject.group.toString()
+                setArtifactId(artifactId)
+                version = project.version.toString()
+
+                setupPom(
+                    project = project,
+                    vcs = vcs
+                )
+
+                artifact(sourcesJar)
+                artifact(stubJavadoc.get())
+            }
         }
 
         repositories {
@@ -142,24 +190,126 @@ kotlin {
             }
         }
 
+        // configGpgSign(this@configurePublishing)
+    }
+}
+
+
+fun MavenPublication.setupPom(
+    project: Project,
+    vcs: String = "https://github.com/ForteScarlet/kron"
+) {
+    pom {
+        scm {
+            url.set(vcs)
+            connection.set("scm:$vcs.git")
+            developerConnection.set("scm:${vcs.replace("https:", "git:")}.git")
+        }
+
+        licenses {
+            license {
+                name.set("The Apache License, Version 2.0")
+                url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+            }
+        }
+
+        developers {
+            developer {
+                id.set("forte")
+                name.set("ForteScarlet")
+                email.set("ForteScarlet@163.com")
+            }
+        }
 
     }
 
-    // See https://zhuanlan.zhihu.com/p/164446166
+    pom.withXml {
+        val root = asNode()
+        root.appendNode("description", project.description)
+        root.appendNode("name", project.name)
+        root.appendNode("url", vcs)
+    }
+}
 
-    signing {
-        sign(publishing.publications)
+
+fun Project.configureMppPublishing() {
+    // configureRemoteRepos()
+
+    // mirai does some magic on MPP targets
+    afterEvaluate {
+        tasks.findByName("compileKotlinCommon")?.enabled = false
+        tasks.findByName("compileTestKotlinCommon")?.enabled = false
+
+        tasks.findByName("compileCommonMainKotlinMetadata")?.enabled = false
+        tasks.findByName("compileKotlinMetadata")?.enabled = false
+
+        // TODO: 2021/1/30 如果添加 JVM 到 root module, 这个 task 会失败因 root module artifacts 有变化
+        //  tasks.findByName("generateMetadataFileForKotlinMultiplatformPublication")?.enabled = false // FIXME: 2021/1/21
     }
 
-    // // Dokka tasks
-    // tasks.withType<DokkaTask>().configureEach {
-    // }
+    val stubJavadoc = tasks.register("javadocJar", org.gradle.jvm.tasks.Jar::class) {
+        @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
+        archiveClassifier.set("javadoc")
+    }
 
+    afterEvaluate {
+        publishing {
+            logPublishing("Publications: ${publications.joinToString { it.name }}")
 
+            publications.filterIsInstance<MavenPublication>().forEach { publication ->
+                // Maven Central always require javadoc.jar
+                publication.artifact(stubJavadoc)
 
+                publication.setupPom(project)
+
+                logPublishing(publication.name)
+                when (val type = publication.name) {
+                    "kotlinMultiplatform" -> {
+                        publication.artifactId = project.name
+
+                        // publishPlatformArtifactsInRootModule(publications.getByName("jvm") as MavenPublication)
+
+                        // TODO: 2021/1/30 现在添加 JVM 到 root module 会导致 Gradle 依赖无法解决
+                        // https://github.com/mamoe/mirai/issues/932
+                    }
+                    "metadata" -> { // TODO: 2021/1/21 seems no use. none `type` is "metadata"
+                        publication.artifactId = "${project.name}-metadata"
+                    }
+                    "common" -> {
+                    }
+                    else -> {
+                        // "jvm", "native", "js"
+                        publication.artifactId = "${project.name}-$type"
+                    }
+                }
+            }
+            repositories {
+                maven {
+                    if (version.toString().endsWith("SNAPSHOTS", true)) {
+                        // snapshot
+                        name = "snapshots-oss"
+                        url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
+                    } else {
+                        name = "oss"
+                        url = uri("https://oss.sonatype.org/service/local/staging/deploy/maven2/")
+                    }
+                    credentials {
+                        username = project.extra.properties["sonatype.username"]?.toString()
+                            ?: throw NullPointerException("snapshots-sonatype-username")
+                        password = project.extra.properties["sonatype.password"]?.toString()
+                            ?: throw NullPointerException("snapshots-sonatype-password")
+                        println("username: $username")
+                        println("password: $password")
+                    }
+                }
+            }
+            // configGpgSign(this@configureMppPublishing)
+        }
+    }
 }
 
 
 
-
-
+fun logPublishing(message: String) {
+    println("[Publishing] Configuring $message")
+}
