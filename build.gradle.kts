@@ -64,9 +64,21 @@ kotlin {
     jvmTargetConfigure("jvm-j17", "16") // TODO waiting for 17 support
 
 
-    js(LEGACY) {
-        nodejs()
+    js(IR) {
+        // binaries.executable()
+        compilations.configureEach {
+            packageJson {
+                customField("publishConfig" to mapOf("registry" to "https://registry.npmjs.org"))
+            }
+        }
         useCommonJs()
+        // nodejs()
+        binaries.executable()
+        browser {
+            distribution {
+                directory = File("$projectDir/browser-output/")
+            }
+        }
     }
 
 
@@ -77,6 +89,11 @@ kotlin {
         hostOs == "Linux" -> linuxX64("native")
         isMingwX64 -> mingwX64("native")
         else -> throw GradleException("Host OS '$hostOs' is not supported in Kotlin/Native.")
+    }.apply {
+        binaries {
+            framework()
+            sharedLib()
+        }
     }
 
     println("Host OS >> $hostOs")
@@ -119,8 +136,6 @@ kotlin {
     // Maven see https://zhuanlan.zhihu.com/p/164446166
     // Js see: https://www.jianshu.com/p/fac124e8e69b
 
-    // See https://zhuanlan.zhihu.com/p/164446166
-
     signing {
         sign(publishing.publications)
     }
@@ -129,13 +144,26 @@ kotlin {
     // tasks.withType<DokkaTask>().configureEach {
     // }
 
+    tasks.build {
+        doLast {
+            // val outputDir = file(project.rootDir, "")
+            copy {
+                val jsPackageJson = file("js/package.json")
+
+                // from(file("js/")).into()
+            }
+        }
+    }
+
+
+
 
 }
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Project.configurePublishing(
     artifactId: String,
-    vcs: String = "https://github.com/ForteScarlet/ktor",
+    vcs: String = "https://github.com/ForteScarlet/kron",
 ) {
     // configureRemoteRepos()
     // apply<ShadowPlugin>()
@@ -184,8 +212,6 @@ inline fun Project.configurePublishing(
                         ?: throw NullPointerException("snapshots-sonatype-username")
                     password = project.extra.properties["sonatype.password"]?.toString()
                         ?: throw NullPointerException("snapshots-sonatype-password")
-                    println("username: $username")
-                    println("password: $password")
                 }
             }
         }
@@ -242,9 +268,6 @@ fun Project.configureMppPublishing() {
 
         tasks.findByName("compileCommonMainKotlinMetadata")?.enabled = false
         tasks.findByName("compileKotlinMetadata")?.enabled = false
-
-        // TODO: 2021/1/30 如果添加 JVM 到 root module, 这个 task 会失败因 root module artifacts 有变化
-        //  tasks.findByName("generateMetadataFileForKotlinMultiplatformPublication")?.enabled = false // FIXME: 2021/1/21
     }
 
     val stubJavadoc = tasks.register("javadocJar", org.gradle.jvm.tasks.Jar::class) {
@@ -298,8 +321,6 @@ fun Project.configureMppPublishing() {
                             ?: throw NullPointerException("snapshots-sonatype-username")
                         password = project.extra.properties["sonatype.password"]?.toString()
                             ?: throw NullPointerException("snapshots-sonatype-password")
-                        println("username: $username")
-                        println("password: $password")
                     }
                 }
             }
