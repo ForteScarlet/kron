@@ -91,7 +91,7 @@ kotlin {
         else -> throw GradleException("Host OS '$hostOs' is not supported in Kotlin/Native.")
     }.apply {
         binaries {
-            framework()
+            // framework()
             sharedLib()
         }
     }
