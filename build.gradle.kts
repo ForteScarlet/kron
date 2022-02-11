@@ -22,7 +22,7 @@ plugins {
 }
 
 val projectGroup = "love.forte.kron"
-val projectVersion = "0.0.1"
+val projectVersion = "0.0.2"
 
 group = projectGroup
 version = projectVersion
@@ -62,7 +62,7 @@ kotlin {
     }
 
     jvmTargetConfigure("jvm", "1.8")
-    jvmTargetConfigure("jvm-j17", "17")
+    jvmTargetConfigure("jvm-jdk17", "17")
 
 
     js(IR) {
@@ -135,8 +135,8 @@ kotlin {
                 implementation(kotlin("test-junit"))
             }
         }
-        val `jvm-j17Main` by getting
-        val `jvm-j17Test` by getting {
+        val `jvm-jdk17Main` by getting
+        val `jvm-jdk17Test` by getting {
             dependencies {
                 implementation(kotlin("test-junit"))
             }
@@ -214,8 +214,6 @@ println("sonatypeUsername: $sonatypeUsername")
 
 if (sonatypeUsername != null && sonatypePassword != null) {
     nexusPublishing {
-        packageGroup.set(projectGroup)
-
         repositories {
             sonatype {
                 username.set(sonatypeUsername)
@@ -263,45 +261,29 @@ fun MavenPublication.setupPom(project: Project) {
 
 
 fun Project.configureMppPublishing() {
-    // configureRemoteRepos()
-
-    // afterEvaluate {
-    //     tasks.findByName("compileKotlinCommon")?.enabled = false
-    //     tasks.findByName("compileTestKotlinCommon")?.enabled = false
-    //
-    //     tasks.findByName("compileCommonMainKotlinMetadata")?.enabled = false
-    //     tasks.findByName("compileKotlinMetadata")?.enabled = false
-    // }
-
     val stubJavadoc = tasks.register("javadocJar", org.gradle.jvm.tasks.Jar::class) {
-        @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
         archiveClassifier.set("javadoc")
     }
 
-    afterEvaluate {
+    // afterEvaluate {
         publishing {
             logPublishing("Publications: ${publications.joinToString { it.name }}")
-
             publications.filterIsInstance<MavenPublication>().forEach { publication ->
+
+                publication.groupId = projectGroup
+                publication.version = project.version.toString()
+
                 // Maven Central always require javadoc.jar
                 publication.artifact(stubJavadoc)
-
                 publication.setupPom(project)
-
                 logPublishing(publication.name)
+                println("Publication.name -> ${publication.name}")
                 when (val type = publication.name) {
                     "kotlinMultiplatform" -> {
                         publication.artifactId = project.name
-
-                        // publishPlatformArtifactsInRootModule(publications.getByName("jvm") as MavenPublication)
-
-                        // 2021/1/30 现在添加 JVM 到 root module 会导致 Gradle 依赖无法解决
-                        // https://github.com/mamoe/mirai/issues/932
                     }
                     "metadata" -> { // 2021/1/21 seems no use. none `type` is "metadata"
                         publication.artifactId = "${project.name}-metadata"
-                    }
-                    "common" -> {
                     }
                     else -> {
                         publication.artifactId = "${project.name}-$type"
@@ -327,7 +309,7 @@ fun Project.configureMppPublishing() {
                 }
             }
         }
-    }
+    // }
 }
 
 

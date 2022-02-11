@@ -326,7 +326,7 @@ sealed class ListValue(override val type: ValueType, private val values: List<An
 /**
  * Check values for [ListValue].
  */
-internal inline fun List<Any>.checkValues(min: Int, max: Int) {
+internal fun List<Any>.checkValues(min: Int, max: Int) {
     for (value in this) {
         when (value) {
             is Number -> value.toInt().also { require(it in min..max) { "Value must in $min..$max, but $value" } }
