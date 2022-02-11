@@ -3,7 +3,6 @@ package kron
 import kotlinx.datetime.*
 import kron.utils.PreviewIterator
 import kron.utils.asPreview
-import kron.utils.nowYear
 
 
 /**
@@ -20,7 +19,7 @@ internal class SimpleCron(
     override val month: Cron.Value,
     override val dayOfWeek: Cron.Value = AnyValue.DayOfWeek,
     // year?
-    val startYear: Int = nowYear(),
+    // val startYear: Int = nowYear(),
     override val expression: String = "${second.literal} ${minute.literal} ${hour.literal} ${dayOfMonth.literal} ${month.literal} ${dayOfWeek.literal}",
 ) : Cron {
 
@@ -46,7 +45,7 @@ internal class SimpleCron(
         private val startLocalDateTime = startTime.toLocalDateTime(timeZone)
         private var year = startLocalDateTime.year
 
-        private var dateTimeOfYear = startLocalDateTime.toDateTime()
+        // private var dateTimeOfYear = startLocalDateTime.toDateTime()
         // private var _next: LocalDateTime?
 
         private var dateTimeIter: DateTimeIter = newDateTimeIter(startLocalDateTime.toDateTime())
@@ -121,7 +120,8 @@ internal class SimpleCron(
 
 
 // 月 日 时 分 秒
-// 暂时不支持 星期
+// TODO 暂时不支持 星期
+@Suppress("CanBeParameter")
 class DateTimeIter(
     // 月份所对应的年
     initDateTime: DateTime? = null,
@@ -332,7 +332,7 @@ class DateTimeIter(
 
     fun next(): DateTime {
         // val nextSecond = nextSecond()
-        return DateTime(lastMonth(), lastDayOfMonth(), lastHour(), lastMinute(), nextSecond())
+        return dateTime(lastMonth(), lastDayOfMonth(), lastHour(), lastMinute(), nextSecond())
     }
 
 }

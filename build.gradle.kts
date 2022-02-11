@@ -13,14 +13,15 @@ description = "A multi-platform cron expression parser"
 
 
 plugins {
-    kotlin("multiplatform") version "1.5.31"
+    kotlin("multiplatform") version "1.6.10"
     `maven-publish`
     signing
+    id("io.github.gradle-nexus.publish-plugin") version "1.1.0"
     // id("org.jetbrains.dokka") version "1.5.30"
 
 }
 
-val projectGroup = "love.forte"
+val projectGroup = "love.forte.kron"
 val projectVersion = "0.0.1"
 
 group = projectGroup
@@ -61,7 +62,7 @@ kotlin {
     }
 
     jvmTargetConfigure("jvm", "1.8")
-    jvmTargetConfigure("jvm-j17", "16") // TODO waiting for 17 support
+    jvmTargetConfigure("jvm-j17", "17")
 
 
     js(IR) {
@@ -84,19 +85,29 @@ kotlin {
 
     val hostOs = System.getProperty("os.name")
     val isMingwX64 = hostOs.startsWith("Windows")
-    val nativeTarget = when {
-        hostOs == "Mac OS X" -> macosX64("native")
-        hostOs == "Linux" -> linuxX64("native")
-        isMingwX64 -> mingwX64("native")
-        else -> throw GradleException("Host OS '$hostOs' is not supported in Kotlin/Native.")
-    }.apply {
+
+
+
+    val macos = macosX64("macos") {
         binaries {
-            // framework()
             sharedLib()
         }
     }
 
-    println("Host OS >> $hostOs")
+    val mingw = mingwX64("mingw") {
+        binaries {
+            sharedLib()
+        }
+    }
+
+    val linux = linuxX64("linux") {
+        binaries {
+            sharedLib()
+        }
+    }
+
+
+    println("Current Host OS >> $hostOs")
 
     sourceSets {
         all {
@@ -106,27 +117,64 @@ kotlin {
             }
         }
 
-        commonMain {
+        val commonMain by getting {
             dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.2.1")
+                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.3.2")
             }
         }
-        // val commonMain by getting {
-        //
-        // }
         val commonTest by getting {
             dependencies {
-                implementation(kotlin("test"))
+                implementation(kotlin("test-common"))
+                implementation(kotlin("test-annotations-common"))
             }
         }
+
         val jvmMain by getting
-        val jvmTest by getting
+        val jvmTest by getting {
+            dependencies {
+                implementation(kotlin("test-junit"))
+            }
+        }
         val `jvm-j17Main` by getting
-        val `jvm-j17Test` by getting
+        val `jvm-j17Test` by getting {
+            dependencies {
+                implementation(kotlin("test-junit"))
+            }
+        }
         val jsMain by getting
-        val jsTest by getting
-        val nativeMain by getting
-        val nativeTest by getting
+        val jsTest by getting {
+            dependencies {
+                implementation(kotlin("test-js"))
+            }
+        }
+
+        //region native target config
+        val nativeMain by creating {
+            dependsOn(commonMain)
+        }
+        val nativeTest by creating {
+            dependsOn(commonTest)
+        }
+
+        val macosMain by getting {
+            dependsOn(nativeMain)
+        }
+        val macosTest by getting {
+            dependsOn(nativeTest)
+        }
+        val mingwMain by getting {
+            dependsOn(nativeMain)
+        }
+        val mingwTest by getting {
+            dependsOn(nativeTest)
+        }
+        val linuxMain by getting {
+            dependsOn(nativeMain)
+        }
+        val linuxTest by getting {
+            dependsOn(nativeTest)
+        }
+        //endregion
     }
 
 
@@ -156,75 +204,31 @@ kotlin {
     }
 
 
-
-
 }
 
-@Suppress("NOTHING_TO_INLINE")
-inline fun Project.configurePublishing(
-    artifactId: String,
-    vcs: String = "https://github.com/ForteScarlet/kron",
-) {
-    // configureRemoteRepos()
-    // apply<ShadowPlugin>()
 
-    val sourcesJar by tasks.registering(Jar::class) {
-        archiveClassifier.set("sources")
-        from(sourceSets["main"].allSource)
-    }
-    // val sourcesJar = tasks["sourcesJar"]
-    val stubJavadoc = tasks.register("javadocJar", Jar::class) {
-        @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
-        archiveClassifier.set("javadoc")
-    }
+val sonatypeUsername: String? = extra.get("sonatype.username")?.toString()
+val sonatypePassword: String? = extra.get("sonatype.password")?.toString()
 
-    publishing {
-        publications {
-            register("mavenJava", MavenPublication::class) {
-                from(components["java"])
+println("sonatypeUsername: $sonatypeUsername")
 
-                groupId = rootProject.group.toString()
-                setArtifactId(artifactId)
-                version = project.version.toString()
-
-                setupPom(
-                    project = project,
-                    vcs = vcs
-                )
-
-                artifact(sourcesJar)
-                artifact(stubJavadoc.get())
-            }
-        }
+if (sonatypeUsername != null && sonatypePassword != null) {
+    nexusPublishing {
+        packageGroup.set(projectGroup)
 
         repositories {
-            maven {
-                if (version.toString().endsWith("SNAPSHOTS", true)) {
-                    // snapshot
-                    name = "snapshots-oss"
-                    url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
-                } else {
-                    name = "oss"
-                    url = uri("https://oss.sonatype.org/service/local/staging/deploy/maven2/")
-                }
-                credentials {
-                    username = project.extra.properties["sonatype.username"]?.toString()
-                        ?: throw NullPointerException("snapshots-sonatype-username")
-                    password = project.extra.properties["sonatype.password"]?.toString()
-                        ?: throw NullPointerException("snapshots-sonatype-password")
-                }
+            sonatype {
+                username.set(sonatypeUsername)
+                password.set(sonatypePassword)
             }
-        }
 
-        // configGpgSign(this@configurePublishing)
+        }
     }
 }
 
 
-fun MavenPublication.setupPom(
-    project: Project,
-    vcs: String = "https://github.com/ForteScarlet/kron"
-) {
+fun MavenPublication.setupPom(project: Project) {
+    val vcs = "https://github.com/ForteScarlet/kron"
     pom {
         scm {
             url.set(vcs)
@@ -261,14 +265,13 @@ fun MavenPublication.setupPom(
 fun Project.configureMppPublishing() {
     // configureRemoteRepos()
 
-    // mirai does some magic on MPP targets
-    afterEvaluate {
-        tasks.findByName("compileKotlinCommon")?.enabled = false
-        tasks.findByName("compileTestKotlinCommon")?.enabled = false
-
-        tasks.findByName("compileCommonMainKotlinMetadata")?.enabled = false
-        tasks.findByName("compileKotlinMetadata")?.enabled = false
-    }
+    // afterEvaluate {
+    //     tasks.findByName("compileKotlinCommon")?.enabled = false
+    //     tasks.findByName("compileTestKotlinCommon")?.enabled = false
+    //
+    //     tasks.findByName("compileCommonMainKotlinMetadata")?.enabled = false
+    //     tasks.findByName("compileKotlinMetadata")?.enabled = false
+    // }
 
     val stubJavadoc = tasks.register("javadocJar", org.gradle.jvm.tasks.Jar::class) {
         @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
@@ -292,16 +295,15 @@ fun Project.configureMppPublishing() {
 
                         // publishPlatformArtifactsInRootModule(publications.getByName("jvm") as MavenPublication)
 
-                        // TODO: 2021/1/30 现在添加 JVM 到 root module 会导致 Gradle 依赖无法解决
+                        // 2021/1/30 现在添加 JVM 到 root module 会导致 Gradle 依赖无法解决
                         // https://github.com/mamoe/mirai/issues/932
                     }
-                    "metadata" -> { // TODO: 2021/1/21 seems no use. none `type` is "metadata"
+                    "metadata" -> { // 2021/1/21 seems no use. none `type` is "metadata"
                         publication.artifactId = "${project.name}-metadata"
                     }
                     "common" -> {
                     }
                     else -> {
-                        // "jvm", "native", "js"
                         publication.artifactId = "${project.name}-$type"
                     }
                 }
@@ -324,11 +326,9 @@ fun Project.configureMppPublishing() {
                     }
                 }
             }
-            // configGpgSign(this@configureMppPublishing)
         }
     }
 }
-
 
 
 fun logPublishing(message: String) {

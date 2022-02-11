@@ -202,6 +202,7 @@ sealed class RangedValue(override val type: ValueType, val range: IntProgression
  */
 // TODO
 //  Step values are also permitted after an asterisk, so if specifying a job to be run every two hours, you can use "*/2".
+//
 
 sealed class SteppedValue(
     override val type: ValueType,

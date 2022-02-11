@@ -59,10 +59,10 @@ fun DateTime.toLocalDateTimeOrNull(
 fun DateTime.toInstant(year: Int, timeZone: TimeZone): Instant =
     toLocalDateTime(year).toInstant(timeZone)
 
-fun DateTime(month: Int, day: Int = 1, hour: Int = 0, minute: Int = 0, second: Int = 0): DateTime =
+fun dateTime(month: Int, day: Int = 1, hour: Int = 0, minute: Int = 0, second: Int = 0): DateTime =
     DateTime(Month(month), day, hour, minute, second)
 
-fun DateTime(localDateTime: LocalDateTime): DateTime =
+fun dateTime(localDateTime: LocalDateTime): DateTime =
     DateTime(localDateTime.month,
         localDateTime.dayOfMonth,
         localDateTime.hour,

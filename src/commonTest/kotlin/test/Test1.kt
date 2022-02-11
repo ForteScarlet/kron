@@ -3,14 +3,10 @@ package test
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kron.*
-import kron.utils.asPreview
 import kotlin.test.Test
 
 
-internal inline fun <reified T: Any?> T.println(needShow: (T) -> Any? = { it }): T = also { println(needShow(this)) }
-
-expect val javaVersion: String?
-
+internal inline fun <reified T : Any?> T.println(needShow: (T) -> Any? = { it }): T = also { println(needShow(this)) }
 
 /**
  *
@@ -19,20 +15,14 @@ expect val javaVersion: String?
 class Test1 {
 
     @Test
-    fun jVersionTest() {
-        println(javaVersion)
-    }
-
-    @Test
     fun test1() {
         val iter = DateTimeIter(
-            DateTime(3),
+            dateTime(3),
             cronMonth(2, 3, 4),
             cronDayOfMonth(1, 2),
             cronHour(1),
             cronMinute(1),
             cronSecond(1),
-            // cronDayOfWeek(),
         )
 
         println("")
@@ -57,15 +47,6 @@ class Test1 {
             SteppedValue.Month(8, 9, 2)
         )
 
-        /*
-          val cron = SimpleCron(
-          RangedValue.Second(0..3),
-          FixedValue.Minute(0),
-          FixedValue.Hour(0),
-          FixedValue.DayOfMonth(1),
-          SteppedValue.Month(5, 9, 2)
-        )
-         */
 
         println(cron.expression)
 
@@ -98,7 +79,6 @@ class Test1 {
         }
 
     }
-
 
 
 }
