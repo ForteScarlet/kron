@@ -2,6 +2,7 @@ package kron
 
 import kotlinx.datetime.*
 import kron.utils.plus
+import kotlin.time.Instant
 
 /*
  @yearly : Run once a year, ie. "0 0 1 1 *".
@@ -36,8 +37,8 @@ open class Yearly(
         return localDateTime.second in second &&
                 localDateTime.minute in minute &&
                 localDateTime.hour in hour &&
-                localDateTime.dayOfMonth in dayOfMonth &&
-                localDateTime.monthNumber in month &&
+                localDateTime.day in dayOfMonth &&
+                localDateTime.month.number in month &&
                 localDateTime.dayOfWeek.isoDayNumber in dayOfWeek
     }
 

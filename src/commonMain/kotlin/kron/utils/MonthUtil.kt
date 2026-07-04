@@ -16,11 +16,11 @@ internal value class Year(val value: Int) {
 
 internal val biggerMonths = setOf(1,3,5,7,8,10,12)
 
-val Month.standardMaxDay: Int get() = maxDay(false)
+public val Month.standardMaxDay: Int get() = maxDay(false)
 
-fun Month.maxDay(year: Int): Int = maxDay(Year(year).isLeap)
+public fun Month.maxDay(year: Int): Int = maxDay(Year(year).isLeap)
 
-fun Month.maxDay(leap: Boolean): Int {
+public fun Month.maxDay(leap: Boolean): Int {
     if (this == Month.FEBRUARY) {
         return if (leap) 29 else 28
     }

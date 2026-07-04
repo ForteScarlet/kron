@@ -3,6 +3,7 @@ package kron
 import kotlinx.datetime.*
 import kron.utils.PreviewIterator
 import kron.utils.asPreview
+import kotlin.time.Instant
 
 
 /**
@@ -27,8 +28,8 @@ internal class SimpleCron(
         return localDateTime.second in second &&
                 localDateTime.minute in minute &&
                 localDateTime.hour in hour &&
-                localDateTime.dayOfMonth in dayOfMonth &&
-                localDateTime.monthNumber in month &&
+                localDateTime.day in dayOfMonth &&
+                localDateTime.month.number in month &&
                 localDateTime.dayOfWeek.isoDayNumber in dayOfWeek
     }
 
@@ -336,6 +337,5 @@ class DateTimeIter(
     }
 
 }
-
 
 

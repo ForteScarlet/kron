@@ -1,6 +1,8 @@
 package kron.utils
 
+import kotlin.time.Clock
+
 /**
  * 获取当前年份
  */
-expect fun nowYear(): Int
+public expect fun nowYear(): Int

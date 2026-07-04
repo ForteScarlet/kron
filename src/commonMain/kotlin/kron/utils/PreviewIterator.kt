@@ -6,10 +6,10 @@ package kron.utils
  * @author ForteScarlet
  */
 
-class PreviewIterator<T>(private val delegate: Iterator<T>) : Iterator<T> {
+public class PreviewIterator<T>(private val delegate: Iterator<T>) : Iterator<T> {
     @Suppress("MemberVisibilityCanBePrivate")
-    var preNext: T? = null
-    private set
+    public var preNext: T? = null
+        private set
 
     init {
         nextView()
@@ -34,4 +34,4 @@ class PreviewIterator<T>(private val delegate: Iterator<T>) : Iterator<T> {
 }
 
 
-fun <T> Iterator<T>.asPreview(): PreviewIterator<T> = PreviewIterator(this)
+public fun <T> Iterator<T>.asPreview(): PreviewIterator<T> = PreviewIterator(this)

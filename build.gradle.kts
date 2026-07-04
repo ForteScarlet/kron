@@ -1,233 +1,104 @@
-@file:Suppress("LocalVariableName")
+@file:Suppress("DEPRECATION")
 
-
-// val compileKotlin: org.jetbrains.kotlin.gradle.tasks.KotlinCompile by tasks
-// compileKotlin.kotlinOptions.suppressWarnings = true
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    kotlinOptions {
-        verbose = true
-    }
-}
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 description = "A multi-platform cron expression parser"
 
-
 plugins {
-    kotlin("multiplatform") version "1.6.10"
+    alias(libs.plugins.kotlin.multiplatform)
     `maven-publish`
     signing
-    id("io.github.gradle-nexus.publish-plugin") version "1.1.0"
-    // id("org.jetbrains.dokka") version "1.5.30"
-
+    alias(libs.plugins.gradle.nexus.publish.plugin)
+    id("kron.common-conventions")
+    id("kron.native-tier-conventions")
 }
 
-val projectGroup = "love.forte.kron"
-val projectVersion = "0.0.2"
-
-group = projectGroup
-version = projectVersion
-
-
-repositories {
-    mavenLocal()
-    mavenCentral()
-}
-
-
+group = "love.forte.kron"
+version = "0.0.2"
 
 kotlin {
-    /*
-        -Xopt-in=kotlin.RequiresOptIn
-     */
+    explicitApiWarning()
+    applyDefaultHierarchyTemplate()
 
-    fun jvmTargetConfigure(jvmName: String = "jvm", jvmTarget: String) {
-        jvm(jvmName) {
-            val target = when (jvmTarget) {
-                "1.6" -> 6
-                "1.8" -> 8
-                else -> jvmTarget.toInt()
-            }
-            attributes.attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, target)
-            compilations.all {
-                println("$jvmName-compilations >> ${this.name}")
-                kotlinOptions.jvmTarget = jvmTarget
-            }
-            testRuns.all {
-                println("$jvmName-testRuns >> ${this.name}")
-                executionTask.configure {
-                    useJUnit()
-                }
+    jvmToolchain(8)
+    jvm {
+        compilerOptions {
+            this.jvmTarget.set(JvmTarget.JVM_1_8)
+        }
+
+        testRuns.configureEach {
+            executionTask.configure {
+                useJUnit()
             }
         }
     }
 
-    jvmTargetConfigure("jvm", "1.8")
-    jvmTargetConfigure("jvm-jdk17", "17")
-
-
-    js(IR) {
-        // binaries.executable()
-        compilations.configureEach {
-            packageJson {
-                customField("publishConfig" to mapOf("registry" to "https://registry.npmjs.org"))
-            }
-        }
-        useCommonJs()
-        // nodejs()
-        binaries.executable()
-        browser {
-            distribution {
-                directory = File("$projectDir/browser-output/")
-            }
-        }
+    js {
+        useEsModules()
+        nodejs()
+        binaries.library()
     }
 
-
-    val hostOs = System.getProperty("os.name")
-    val isMingwX64 = hostOs.startsWith("Windows")
-
-
-
-    val macos = macosX64("macos") {
-        binaries {
-            sharedLib()
-        }
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        useEsModules()
+        nodejs()
+        binaries.library()
     }
-
-    val mingw = mingwX64("mingw") {
-        binaries {
-            sharedLib()
-        }
-    }
-
-    val linux = linuxX64("linux") {
-        binaries {
-            sharedLib()
-        }
-    }
-
-
-    println("Current Host OS >> $hostOs")
 
     sourceSets {
-        all {
-            languageSettings {
-                optIn("kotlin.RequiresOptIn")
-
-            }
+        commonMain.dependencies {
+            implementation(libs.kotlinx.datetime)
         }
-
-        val commonMain by getting {
-            dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.3.2")
-            }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
         }
-        val commonTest by getting {
-            dependencies {
-                implementation(kotlin("test-common"))
-                implementation(kotlin("test-annotations-common"))
-            }
-        }
-
-        val jvmMain by getting
-        val jvmTest by getting {
-            dependencies {
-                implementation(kotlin("test-junit"))
-            }
-        }
-        val `jvm-jdk17Main` by getting
-        val `jvm-jdk17Test` by getting {
-            dependencies {
-                implementation(kotlin("test-junit"))
-            }
-        }
-        val jsMain by getting
-        val jsTest by getting {
-            dependencies {
-                implementation(kotlin("test-js"))
-            }
-        }
-
-        //region native target config
-        val nativeMain by creating {
-            dependsOn(commonMain)
-        }
-        val nativeTest by creating {
-            dependsOn(commonTest)
-        }
-
-        val macosMain by getting {
-            dependsOn(nativeMain)
-        }
-        val macosTest by getting {
-            dependsOn(nativeTest)
-        }
-        val mingwMain by getting {
-            dependsOn(nativeMain)
-        }
-        val mingwTest by getting {
-            dependsOn(nativeTest)
-        }
-        val linuxMain by getting {
-            dependsOn(nativeMain)
-        }
-        val linuxTest by getting {
-            dependsOn(nativeTest)
-        }
-        //endregion
-    }
-
-
-    configureMppPublishing()
-
-    // Publish
-    // Maven see https://zhuanlan.zhihu.com/p/164446166
-    // Js see: https://www.jianshu.com/p/fac124e8e69b
-
-    signing {
-        sign(publishing.publications)
-    }
-
-    // // Dokka tasks
-    // tasks.withType<DokkaTask>().configureEach {
-    // }
-
-    tasks.build {
-        doLast {
-            // val outputDir = file(project.rootDir, "")
-            copy {
-                val jsPackageJson = file("js/package.json")
-
-                // from(file("js/")).into()
-            }
-        }
-    }
-
-
-}
-
-
-val sonatypeUsername: String? = extra.get("sonatype.username")?.toString()
-val sonatypePassword: String? = extra.get("sonatype.password")?.toString()
-
-println("sonatypeUsername: $sonatypeUsername")
-
-if (sonatypeUsername != null && sonatypePassword != null) {
-    nexusPublishing {
-        repositories {
-            sonatype {
-                username.set(sonatypeUsername)
-                password.set(sonatypePassword)
-            }
-
+        jvmTest.dependencies {
+            implementation(kotlin("test-junit"))
         }
     }
 }
 
+publishing {
+    publications.withType<MavenPublication>().configureEach {
+        setupPom(project)
+    }
+}
+
+val signingKey = providers.gradleProperty("signingInMemoryKey")
+    .orElse(providers.environmentVariable("SIGNING_KEY"))
+val signingPassword = providers.gradleProperty("signingInMemoryKeyPassword")
+    .orElse(providers.environmentVariable("SIGNING_PASSWORD"))
+
+signing {
+    if (signingKey.isPresent) {
+        useInMemoryPgpKeys(signingKey.get(), signingPassword.orNull)
+    }
+    sign(publishing.publications)
+}
+
+val sonatypeUsername = providers.gradleProperty("sonatype.username")
+    .orElse(providers.environmentVariable("SONATYPE_USERNAME"))
+val sonatypePassword = providers.gradleProperty("sonatype.password")
+    .orElse(providers.environmentVariable("SONATYPE_PASSWORD"))
+
+nexusPublishing {
+    repositories {
+        sonatype {
+            username.set(sonatypeUsername)
+            password.set(sonatypePassword)
+        }
+    }
+}
 
 fun MavenPublication.setupPom(project: Project) {
     val vcs = "https://github.com/ForteScarlet/kron"
     pom {
+        name.set(project.name)
+        description.set(project.description)
+        url.set(vcs)
+
         scm {
             url.set(vcs)
             connection.set("scm:$vcs.git")
@@ -248,71 +119,5 @@ fun MavenPublication.setupPom(project: Project) {
                 email.set("ForteScarlet@163.com")
             }
         }
-
     }
-
-    pom.withXml {
-        val root = asNode()
-        root.appendNode("description", project.description)
-        root.appendNode("name", project.name)
-        root.appendNode("url", vcs)
-    }
-}
-
-
-fun Project.configureMppPublishing() {
-    val stubJavadoc = tasks.register("javadocJar", org.gradle.jvm.tasks.Jar::class) {
-        archiveClassifier.set("javadoc")
-    }
-
-    // afterEvaluate {
-        publishing {
-            logPublishing("Publications: ${publications.joinToString { it.name }}")
-            publications.filterIsInstance<MavenPublication>().forEach { publication ->
-
-                publication.groupId = projectGroup
-                publication.version = project.version.toString()
-
-                // Maven Central always require javadoc.jar
-                publication.artifact(stubJavadoc)
-                publication.setupPom(project)
-                logPublishing(publication.name)
-                println("Publication.name -> ${publication.name}")
-                when (val type = publication.name) {
-                    "kotlinMultiplatform" -> {
-                        publication.artifactId = project.name
-                    }
-                    "metadata" -> { // 2021/1/21 seems no use. none `type` is "metadata"
-                        publication.artifactId = "${project.name}-metadata"
-                    }
-                    else -> {
-                        publication.artifactId = "${project.name}-$type"
-                    }
-                }
-            }
-            repositories {
-                maven {
-                    if (version.toString().endsWith("SNAPSHOTS", true)) {
-                        // snapshot
-                        name = "snapshots-oss"
-                        url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
-                    } else {
-                        name = "oss"
-                        url = uri("https://oss.sonatype.org/service/local/staging/deploy/maven2/")
-                    }
-                    credentials {
-                        username = project.extra.properties["sonatype.username"]?.toString()
-                            ?: throw NullPointerException("snapshots-sonatype-username")
-                        password = project.extra.properties["sonatype.password"]?.toString()
-                            ?: throw NullPointerException("snapshots-sonatype-password")
-                    }
-                }
-            }
-        }
-    // }
-}
-
-
-fun logPublishing(message: String) {
-    println("[Publishing] Configuring $message")
 }

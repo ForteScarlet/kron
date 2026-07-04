@@ -3,6 +3,8 @@ package kron
 import kotlinx.datetime.*
 import kron.utils.maxDay
 import kron.utils.nowYear
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 
 /**
@@ -33,7 +35,7 @@ data class DateTime(val month: Month, val day: Int = 1, val hour: Int = 0, val m
 
 }
 
-fun LocalDateTime.toDateTime(): DateTime = DateTime(month, dayOfMonth, hour, minute, second)
+fun LocalDateTime.toDateTime(): DateTime = DateTime(month, day, hour, minute, second)
 
 /**
  * @throws DateTimeException If year is not a leap year but date is 'February 29'
@@ -64,14 +66,14 @@ fun dateTime(month: Int, day: Int = 1, hour: Int = 0, minute: Int = 0, second: I
 
 fun dateTime(localDateTime: LocalDateTime): DateTime =
     DateTime(localDateTime.month,
-        localDateTime.dayOfMonth,
+        localDateTime.day,
         localDateTime.hour,
         localDateTime.minute,
         localDateTime.second)
 
 operator fun DateTime.contains(localDateTime: LocalDateTime): Boolean {
     return month == localDateTime.month &&
-            day == localDateTime.dayOfMonth &&
+            day == localDateTime.day &&
             hour == localDateTime.hour &&
             minute == localDateTime.minute &&
             second == localDateTime.second

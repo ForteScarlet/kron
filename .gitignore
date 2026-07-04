@@ -1,6 +1,9 @@
 ### Kotlin template
 # gradle
 gradle.properties
+.kotlin/
+**/.gradle/
+.idea/*
 
 # Compiled class file
 *.class
@@ -169,4 +172,3 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
-
